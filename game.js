@@ -1,1 +1,2580 @@
-<!doctypehtml><html lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"name=viewport><title>Voxel Terrain Game</title><style>:root{--slot-size:48px}body,html{width:100%;height:100%;margin:0;overflow:hidden;background:#dce8f2;font-family:sans-serif}canvas{display:block;width:100%;height:100%;background:#dce8f2;touch-action:none}.hint{position:fixed;top:8px;left:8px;z-index:5;max-width:calc(100vw - 160px);padding:7px 9px;border-radius:4px;background:rgba(255,255,255,.9);font-size:14px;pointer-events:none}#controllerStatus{color:#555}#coordinates{position:fixed;top:max(8px,env(safe-area-inset-top));right:8px;z-index:5;padding:7px 9px;border-radius:4px;background:rgba(255,255,255,.9);color:#222;font:12px/1.2 monospace;white-space:nowrap;pointer-events:none}#crosshair{position:fixed;top:50%;left:50%;z-index:5;width:20px;height:20px;transform:translate(-50%,-50%);pointer-events:none}#crosshair::after,#crosshair::before{position:absolute;top:50%;left:50%;content:"";background:#fff;box-shadow:0 0 2px #000,0 0 4px #000;transform:translate(-50%,-50%)}#crosshair::before{width:2px;height:18px}#crosshair::after{width:18px;height:2px}#mineProgress{position:fixed;top:50%;left:50%;z-index:4;display:none;width:38px;height:38px;border-radius:50%;background:conic-gradient(from -90deg,#31e66b var(--progress,0deg),transparent var(--progress,0deg));transform:translate(-50%,-50%);pointer-events:none;-webkit-mask:radial-gradient(farthest-side,transparent 69%,#000 72%);mask:radial-gradient(farthest-side,transparent 69%,#000 72%)}#hotbar{position:fixed;bottom:18px;left:50%;z-index:6;display:flex;gap:4px;transform:translateX(-50%)}#inventoryPanel{position:fixed;top:50%;left:50%;z-index:12;display:none;box-sizing:border-box;width:max-content;max-width:calc(100vw - 16px);max-height:calc(100vh - 24px);padding:14px;overflow:auto;border:2px solid #594c3c;border-radius:8px;background:rgba(37,34,30,.96);color:#fff;transform:translate(-50%,-50%);box-shadow:0 8px 28px rgba(0,0,0,.4)}#inventoryPanel.open{display:block}#inventoryTitle{margin:0 0 10px;font-size:16px;font-weight:400}#inventoryGrid{display:grid;grid-template-columns:repeat(9,var(--slot-size));gap:4px}.slot{position:relative;box-sizing:border-box;width:var(--slot-size);height:var(--slot-size);border:2px solid #897a65;border-radius:4px;background:rgba(130,117,97,.65);cursor:pointer;user-select:none;touch-action:manipulation}.slot:hover{border-color:#fff}.slot.selected{border-color:#ffe178;box-shadow:0 0 0 2px rgba(255,225,120,.45)}.slot.gamepad-cursor{outline:3px solid #80e8ff;outline-offset:2px}.slotColor{position:absolute;inset:8px;border:1px solid rgba(0,0,0,.35);border-radius:3px;pointer-events:none}.slotCount{position:absolute;right:3px;bottom:1px;color:#fff;font-size:13px;font-weight:700;text-shadow:1px 1px 2px #000;pointer-events:none}.slotNumber{position:absolute;top:1px;left:3px;color:rgba(255,255,255,.85);font-size:11px;text-shadow:1px 1px 2px #000;pointer-events:none}.craftingPanel{width:min(560px,calc(100vw - 60px));margin-top:14px;padding-top:10px;border-top:1px solid rgba(255,255,255,.35)}.craftingPanel h3{margin:0 0 8px;font-size:15px;font-weight:400}#craftingRecipes{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:6px}.craftButton{min-height:42px;padding:6px 8px;border:1px solid #897a65;border-radius:4px;background:#51483c;color:#fff;text-align:left;cursor:pointer}.craftButton:hover:not(:disabled){background:#6a5a46;border-color:#ffe178}.craftButton:disabled{opacity:.5;cursor:not-allowed}.craftStatus{min-height:1em;margin:7px 0 0;color:#ffd876;font-size:12px}#touchControls{display:none}.touch-stick{position:fixed;bottom:22px;z-index:8;box-sizing:border-box;width:132px;height:132px;border:2px solid rgba(255,255,255,.7);border-radius:50%;background:rgba(35,45,50,.32);touch-action:none;user-select:none}#moveStick{left:20px}#lookStick{right:20px}.touch-stick-knob{position:absolute;top:50%;left:50%;width:54px;height:54px;border:2px solid rgba(255,255,255,.9);border-radius:50%;background:rgba(225,235,240,.62);transform:translate(calc(-50% + var(--knob-x,0)),calc(-50% + var(--knob-y,0)));pointer-events:none}.stick-label{position:absolute;right:0;bottom:8px;left:0;color:#fff;font-size:10px;text-align:center;text-shadow:1px 1px 2px #000;pointer-events:none}.touch-actions{position:fixed;right:24px;bottom:174px;z-index:9;display:grid;grid-template-columns:repeat(2,58px);gap:8px}.touch-actions button{min-width:58px;min-height:54px;padding:4px;border:2px solid rgba(255,255,255,.8);border-radius:12px;background:rgba(35,45,50,.72);color:#fff;font:bold 12px sans-serif;text-shadow:1px 1px 2px #000;touch-action:none;user-select:none}.touch-actions button:active{background:rgba(100,130,145,.95);transform:scale(.96)}@media (pointer:coarse){:root{--slot-size:min(42px, calc((100vw - 70px) / 9))}#touchControls{display:block}#hotbar{bottom:5px;z-index:10}.hint{font-size:12px}}@media (pointer:coarse) and (max-width:420px){.touch-stick{width:112px;height:112px}#moveStick{left:12px}#lookStick{right:12px}.touch-actions{right:14px;bottom:144px}.slotColor{inset:6px}}</style><div class=hint>WASD move · Space jump · Right-click mine (hold 1s) · Left-click place · E inventory <span id=controllerStatus>· Controller: not connected</span></div><div id=coordinates aria-label="Player coordinates">X 0.0 · Y 0.0 · Z 0.0</div><canvas id=c></canvas><div id=mineProgress aria-hidden=true></div><div id=crosshair aria-hidden=true></div><div id=touchControls aria-label="Touch game controls"><div id=moveStick aria-label="Movement joystick"class=touch-stick><span class=touch-stick-knob></span> <span class=stick-label>MOVE</span></div><div id=lookStick aria-label="Look joystick"class=touch-stick><span class=touch-stick-knob></span> <span class=stick-label>LOOK</span></div><div class=touch-actions><button type=button data-touch-action=jump>A<br>Jump</button> <button type=button data-touch-action=mine>Mine<br>Hold 1s</button> <button type=button data-touch-action=place>Place</button> <button type=button id=bagButton>Bag</button></div></div><div id=hotbar></div><div id=inventoryPanel><h2 id=inventoryTitle>Inventory — drag or select a slot</h2><div id=inventoryGrid></div><section class=craftingPanel><h3>Crafting</h3><div id=craftingRecipes></div><p aria-live=polite class=craftStatus id=craftStatus></section></div><script>"use strict";const canvas=document.getElementById("c"),ctx=canvas.getContext("2d"),hotbarElement=document.getElementById("hotbar"),inventoryPanel=document.getElementById("inventoryPanel"),inventoryGrid=document.getElementById("inventoryGrid"),craftingRecipesElement=document.getElementById("craftingRecipes"),craftStatusElement=document.getElementById("craftStatus"),controllerStatus=document.getElementById("controllerStatus"),mineProgressElement=document.getElementById("mineProgress"),coordinatesElement=document.getElementById("coordinates");let screenWidth=0,screenHeight=0,centerX=0,centerY=0;function resizeCanvas(){var e=Math.min(window.devicePixelRatio||1,2);screenWidth=window.innerWidth,screenHeight=window.innerHeight,canvas.width=Math.round(screenWidth*e),canvas.height=Math.round(screenHeight*e),ctx.setTransform(e,0,0,e,0,0),centerX=screenWidth/2,centerY=screenHeight/2}function createPermutation(e){const t=Array.from({length:256},(e,t)=>t);let o=e>>>0;for(let e=t.length-1;0<e;e--){var r=Math.floor((o=1664525*o+1013904223>>>0,o/4294967296*(e+1)));[t[e],t[r]]=[t[r],t[e]]}return[...t,...t]}resizeCanvas(),window.addEventListener("resize",resizeCanvas);const permutation=createPermutation(123456);function fade(e){return e*e*e*(e*(6*e-15)+10)}function lerp(e,t,o){return e+(t-e)*o}function gradient(e,t,o){switch(7&e){case 0:return t+o;case 1:return-t+o;case 2:return t-o;case 3:return-t-o;case 4:return t;case 5:return-t;case 6:return o;default:return-o}}function perlin2(e,t){var o=Math.floor(e),r=Math.floor(t),n=255&o,a=255&r,i=e-o,c=t-r,l=fade(i),e=fade(c),o=permutation[permutation[n]+a],t=permutation[permutation[n]+a+1],r=permutation[permutation[1+n]+a],a=permutation[permutation[1+n]+a+1],t=lerp(gradient(o,i,c),gradient(t,i,c-1),e),e=lerp(gradient(r,i-1,c),gradient(a,i-1,c-1),e);return.7*lerp(t,e,l)}function smoothstep(e,t,o){e=Math.max(0,Math.min(1,(o-e)/(t-e)));return e*e*(3-2*e)}function terrainHeight(t,o){let r=0,n=1,a=1,i=0;for(let e=0;e<5;e++)r+=perlin2(t*a/26,o*a/26)*n,i+=n,n*=.52,a*=2;var e=2+r/i*18,c=smoothstep(.14,.44,perlin2(t/165,o/165)),l=perlin2(t/34,o/34),s=Math.max(0,1-Math.abs(l)/.7),l=perlin2(t/76,o/76),l=Math.max(0,Math.min(1,(l+.7)/1.4));return Math.floor(e+c*(2+12*s+5*l))}const WORLD_MIN_Y=-10,RENDER_RADIUS=16,PLAYER_HALF_WIDTH=.28,PLAYER_HEIGHT=1.7,EYE_HEIGHT=1.6,MOVE_SPEED=5,GRAVITY=18,JUMP_SPEED=7,MAX_STEP_HEIGHT=1,MINE_DURATION_MS=1e3,PLACE_COOLDOWN_MS=250;function terrainColor(e){return e<-4?"#655244":e<0?"#826344":e<4?"#718b45":e<9?"#82934b":"#a5a16e"}const DOOR_BLOCK_COLORS={door_bottom_closed:"#9a6836",door_top_closed:"#9a6837",door_bottom_open:"#9a6838",door_top_open:"#9a6839"};function worldBlockTypeFromColor(e){var t,o,r=String(e||"").toLowerCase();for([t,o]of Object.entries(DOOR_BLOCK_COLORS))if(o===r)return t;return itemTypeFromColor(r)}function isDoorBlock(e){return Boolean(e?.type?.startsWith("door_"))}function isOpenDoorBlock(e){return Boolean(e?.type?.endsWith("_open"))}const ITEM_DEFINITIONS={log:{name:"Wood",color:"#76502e"},planks:{name:"Planks",color:"#b9824a"},sticks:{name:"Sticks",color:"#c99355"},stone:{name:"Stone",color:"#777b82"},dirt:{name:"Dirt",color:"#826344"},leaves:{name:"Leaves",color:"#32853b"},wood_pickaxe:{name:"Wood Pickaxe",color:"#d9ad55"},stone_pickaxe:{name:"Stone Pickaxe",color:"#98a4b5"},wood_axe:{name:"Wood Axe",color:"#bf8d43"},stone_axe:{name:"Stone Axe",color:"#687b91"},door:{name:"Door",color:"#9a6836"},fence:{name:"Fence",color:"#a97843"}},CRAFTING_RECIPES=[{id:"planks",label:"4 Planks",ingredients:{log:1},output:{type:"planks",count:4}},{id:"sticks",label:"4 Sticks",ingredients:{planks:2},output:{type:"sticks",count:4}},{id:"wood_pickaxe",label:"Wood Pickaxe",ingredients:{planks:3,sticks:2},output:{type:"wood_pickaxe",count:1}},{id:"stone_pickaxe",label:"Stone Pickaxe",ingredients:{stone:3,sticks:2},output:{type:"stone_pickaxe",count:1}},{id:"wood_axe",label:"Wood Axe",ingredients:{planks:3,sticks:2},output:{type:"wood_axe",count:1}},{id:"stone_axe",label:"Stone Axe",ingredients:{stone:3,sticks:2},output:{type:"stone_axe",count:1}},{id:"door",label:"3 Doors",ingredients:{planks:6},output:{type:"door",count:3}},{id:"fence",label:"3 Fences",ingredients:{planks:4,sticks:2},output:{type:"fence",count:3}}];function itemTypeFromColor(e){var t,o,r=String(e||"").toLowerCase();for([t,o]of Object.entries(ITEM_DEFINITIONS))if(o.color.toLowerCase()===r)return t;return`block:${r}`}function itemDisplayName(e){return ITEM_DEFINITIONS[e]?.name||"Block"}function hash2(e,t){t=Math.imul(e,374761393)+Math.imul(t,668265263);return((t=Math.imul(t^t>>>13,1274126177))^t>>>16)>>>0}const treeAnchorCache=new Map;function getTreeAnchor(e,t){var o=`${e},${t}`;if(treeAnchorCache.has(o))return treeAnchorCache.get(o);var r=hash2(e,t);if(r%2!=0)return treeAnchorCache.set(o,null),null;r={x:12*e+(r>>>8)%7-3,z:12*t+(r>>>16)%7-3,height:3+(r>>>24)%3};return Math.hypot(r.x,r.z)<8?(treeAnchorCache.set(o,null),null):(treeAnchorCache.set(o,r),r)}function generatedTreeBlock(o,r,n){var e=Math.floor(o/12),a=Math.floor(n/12);for(let t=e-1;t<=e+1;t++)for(let e=a-1;e<=a+1;e++){var i=getTreeAnchor(t,e);if(i){var c=terrainHeight(i.x,i.z),l=c+i.height;if(o===i.x&&n===i.z&&c<=r&&r<l)return{x:o,y:r,z:n,color:ITEM_DEFINITIONS.log.color,type:"log"};c=Math.abs(o-i.x),i=Math.abs(n-i.z),l=r-l;if(0<=l&&l<=2&&c<=2&&i<=2&&c+i+Math.max(0,l-1)<=3&&r>=terrainHeight(o,n))return{x:o,y:r,z:n,color:ITEM_DEFINITIONS.leaves.color,type:"leaves"}}}return null}const placedBlocks=new Map,blockEdits=new Map;function blockKey(e,t,o){return`${e},${t},${o}`}function addPlacedBlock(e,t,o,r,n=itemTypeFromColor(r)){placedBlocks.set(blockKey(e,t,o),{x:e,y:t,z:o,color:r,type:n})}function getBlock(e,t,o){var r=blockKey(e,t,o);if(blockEdits.has(r)){const n=blockEdits.get(r);return n&&!n.type&&(n.type=worldBlockTypeFromColor(n.color)),n}if(placedBlocks.has(r)){const a=placedBlocks.get(r);return a.type||(a.type=worldBlockTypeFromColor(a.color)),a}if(t>=WORLD_MIN_Y&&t<terrainHeight(e,o)){r=t<-4;return{x:e,y:t,z:o,color:r?ITEM_DEFINITIONS.stone.color:terrainColor(t),type:r?"stone":"dirt"}}return generatedTreeBlock(e,t,o)}function isSolid(e,t,o){o=getBlock(e,t,o);return Boolean(o&&!isOpenDoorBlock(o))}function rotate2d([e,t],o){var r=Math.sin(o),o=Math.cos(o);return[e*o-t*r,t*o+e*r]}addPlacedBlock(-3,terrainHeight(-3,0),0,"#d84838"),addPlacedBlock(-1,terrainHeight(-1,0),0,"#37a84d"),addPlacedBlock(1,terrainHeight(1,0),0,"#397bd7");class Camera{constructor(e,t,o){this.pos=[e,t,o],this.rot=[0,0],this.velocityY=0,this.grounded=!0}mouseMove(e,t){this.rot[1]+=e/200,this.rot[0]-=t/200;t=Math.PI/2-.01;this.rot[0]=Math.max(-t,Math.min(t,this.rot[0]))}}const camera=new Camera(0,terrainHeight(0,-10),-10);function updateCoordinates(){const[e,t,o]=camera.pos;coordinatesElement.textContent=`X ${e.toFixed(1)} · Y ${t.toFixed(1)} · Z ${o.toFixed(1)}`}const inventory=Array.from({length:27},()=>null),keys=Object.create(null),remotePlayers=new Map,pendingWorldEdits=new Map;let selectedSlot=0,inventoryOpen=!1,jumpRequested=!1,gamepadMoveX=0,gamepadMoveY=0,gamepadLookX=0,gamepadLookY=0,touchMoveX=0,touchMoveY=0,touchLookX=0,touchLookY=0,gamepadInventoryCursor=0,gamepadDragSource=null;const miningSources=new Set;let miningTargetKey=null,miningStartedAt=0,lastSuccessfulPlacementAt=-1/0,worldSocket=null,localPlayerId=null,lastNetworkUpdate=0,hasLoadedServerState=!1,inventoryDirty=!1;const previousPadActions={jump:!1,mine:!1,place:!1,inventory:!1,back:!1,nextSlot:!1,dpadUp:!1,dpadDown:!1,dpadLeft:!1,dpadRight:!1};function inventoryPayload(){return inventory.map(e=>e?{type:e.type||itemTypeFromColor(e.color),color:e.color,count:e.count}:null)}function syncInventory(){inventoryDirty=!0,hasLoadedServerState&&worldSocket&&worldSocket.readyState===WebSocket.OPEN&&worldSocket.send(JSON.stringify({type:"inventory",inventory:inventoryPayload()}))}function addToInventory(e,t=itemTypeFromColor(e)){let o=inventory.findIndex(e=>e&&(e.type||itemTypeFromColor(e.color))===t&&e.count<64);if(o<0&&(o=inventory.findIndex(e=>!e)),o<0)return!1;var r=ITEM_DEFINITIONS[t]?.color||e;return inventory[o]||(inventory[o]={type:t,color:r,count:0}),inventory[o].count++,renderInventory(),syncInventory(),!0}function countInventoryItem(o){return inventory.reduce((e,t)=>{return t?e+((t.type||itemTypeFromColor(t.color))===o?t.count:0):e},0)}function hasRecipeIngredients(e){return Object.entries(e.ingredients).every(([e,t])=>countInventoryItem(e)>=t)}function cloneInventory(){return inventory.map(e=>e?{...e}:null)}function countItemsIn(e,o){return e.reduce((e,t)=>{return t?e+((t.type||itemTypeFromColor(t.color))===o?t.count:0):e},0)}function consumeIngredientsFrom(o,e){for(var[r,n]of Object.entries(e)){let t=n;for(let e=0;e<o.length&&0<t;e++){const i=o[e];var a;i&&(i.type||itemTypeFromColor(i.color))===r&&(a=Math.min(i.count,t),i.count-=a,t-=a,i.count<=0&&(o[e]=null))}if(0<t)return!1}return!0}function addCraftedItemTo(t,o,e){var r,n=ITEM_DEFINITIONS[o];if(!n)return!1;let a=e;for(let e=0;e<t.length&&0<a;e++){const l=t[e];l&&((l.type||itemTypeFromColor(l.color))!==o||64<=l.count||(r=Math.min(64-l.count,a),l.count+=r,a-=r))}for(;0<a;){var i=t.findIndex(e=>!e);if(i<0)return!1;var c=Math.min(64,a);t[i]={type:o,color:n.color,count:c},a-=c}return!0}function craftRecipe(e){var t=cloneInventory();if(consumeIngredientsFrom(t,e.ingredients))if(addCraftedItemTo(t,e.output.type,e.output.count)){for(let e=0;e<inventory.length;e++)inventory[e]=t[e];craftStatusElement.textContent=`Crafted ${e.output.count} ${itemDisplayName(e.output.type)}.`,renderInventory(),syncInventory()}else craftStatusElement.textContent="Make room in your inventory first.";else craftStatusElement.textContent="Not enough materials."}function renderCraftingRecipes(){craftingRecipesElement.replaceChildren();for(const t of CRAFTING_RECIPES){var e=Object.entries(t.ingredients).map(([e,t])=>`${t} ${itemDisplayName(e)}`).join(" + ");const o=document.createElement("button");o.type="button",o.className="craftButton",o.textContent=`${t.label} — ${e}`,o.disabled=!hasRecipeIngredients(t),o.addEventListener("click",()=>craftRecipe(t)),craftingRecipesElement.appendChild(o)}}function makeSlot(t){var e=inventory[t];const o=document.createElement("div");o.className="slot",t===selectedSlot&&o.classList.add("selected"),t===gamepadInventoryCursor&&o.classList.add("gamepad-cursor"),o.draggable=!0,o.title=e?`Slot ${t+1}: ${itemDisplayName(e.type||itemTypeFromColor(e.color))} (${e.count})`:`Slot ${t+1}`;const r=document.createElement("span");if(r.className="slotNumber",r.textContent=t<9?String(t+1):"",o.appendChild(r),e&&0<e.count){const n=document.createElement("span");n.className="slotColor",n.style.backgroundColor=e.color,o.appendChild(n);const a=document.createElement("span");a.className="slotCount",a.textContent=String(e.count),o.appendChild(a)}return o.addEventListener("click",()=>{t<9?(selectedSlot=t,gamepadInventoryCursor=t,renderInventory()):inventoryOpen&&inventory[t]&&([inventory[selectedSlot],inventory[t]]=[inventory[t],inventory[selectedSlot]],renderInventory(),syncInventory())}),o.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",String(t))}),o.addEventListener("dragover",e=>{e.preventDefault()}),o.addEventListener("drop",e=>{e.preventDefault();e=Number(e.dataTransfer.getData("text/plain"));!Number.isInteger(e)||e<0||e>=inventory.length||e===t||([inventory[e],inventory[t]]=[inventory[t],inventory[e]],renderInventory(),syncInventory())}),o}function renderInventory(){hotbarElement.replaceChildren(),inventoryGrid.replaceChildren();for(let e=0;e<inventory.length;e++)e<9&&hotbarElement.appendChild(makeSlot(e)),inventoryGrid.appendChild(makeSlot(e));renderCraftingRecipes()}function stopMining(e){void 0===e?miningSources.clear():miningSources.delete(e),0===miningSources.size&&(miningTargetKey=null,miningStartedAt=0,mineProgressElement.style.display="none",mineProgressElement.style.setProperty("--progress","0deg"))}function setInventoryOpen(e){inventoryOpen=Boolean(e),inventoryPanel.classList.toggle("open",inventoryOpen);for(const t of Object.keys(keys))keys[t]=!1;jumpRequested=!1,inventoryOpen&&(stopMining(),document.pointerLockElement===canvas&&document.exitPointerLock?.())}const requestedRoom=new URLSearchParams(window.location.search).get("room")||"lobby",roomName=/^[a-zA-Z0-9_-]{1,48}$/.test(requestedRoom)?requestedRoom:"lobby",websocketScheme="https:"===window.location.protocol?"wss:":"ws:",socketUrl=`${websocketScheme}//${window.location.host}/ws/world/${roomName}/`;function sendPlayerPosition(){hasLoadedServerState&&worldSocket&&worldSocket.readyState===WebSocket.OPEN&&worldSocket.send(JSON.stringify({type:"position",position:{x:camera.pos[0],y:camera.pos[1],z:camera.pos[2],yaw:camera.rot[1],pitch:camera.rot[0]}}))}function syncPlayerPosition(e){!hasLoadedServerState||e-lastNetworkUpdate<50||!worldSocket||worldSocket.readyState!==WebSocket.OPEN||(lastNetworkUpdate=e,sendPlayerPosition())}function applyServerInventory(t){if(Array.isArray(t)&&27===t.length){for(let e=0;e<inventory.length;e++){const r=t[e];var o;r&&"string"==typeof r.color&&/^#[0-9a-fA-F]{6}$/.test(r.color)&&Number.isInteger(r.count)&&0<r.count&&r.count<=64?(o="string"==typeof r.type?r.type:itemTypeFromColor(r.color),inventory[e]={type:o,color:r.color.toLowerCase(),count:r.count}):inventory[e]=null}renderInventory()}}function applyServerEdits(e){if(Array.isArray(e)){blockEdits.clear();for(const r of e){var t,o;r&&Number.isInteger(r.x)&&Number.isInteger(r.y)&&Number.isInteger(r.z)&&(t=blockKey(r.x,r.y,r.z),null===r.color?blockEdits.set(t,null):"string"==typeof r.color&&/^#[0-9a-fA-F]{6}$/.test(r.color)&&(o=r.color.toLowerCase(),blockEdits.set(t,{x:r.x,y:r.y,z:r.z,color:o,type:worldBlockTypeFromColor(o)})))}}}function sendWorldEdit(e,t,o,r){var n=blockKey(e,t,o),a={x:e,y:t,z:o,color:r};hasLoadedServerState&&worldSocket&&worldSocket.readyState===WebSocket.OPEN?worldSocket.send(JSON.stringify({type:"world_edit",x:e,y:t,z:o,color:r})):pendingWorldEdits.set(n,a)}function flushPendingWorldEdits(){if(hasLoadedServerState&&worldSocket&&worldSocket.readyState===WebSocket.OPEN)for(var[e,t]of pendingWorldEdits)blockEdits.set(e,null===t.color?null:{x:t.x,y:t.y,z:t.z,color:t.color,type:itemTypeFromColor(t.color)}),worldSocket.send(JSON.stringify({type:"world_edit",x:t.x,y:t.y,z:t.z,color:t.color})),pendingWorldEdits.delete(e)}function removeBlock(e,t,o){var r=blockKey(e,t,o);blockEdits.set(r,null),placedBlocks.delete(r),sendWorldEdit(e,t,o,null)}function applyWelcome(e){localPlayerId=e.player_id,remotePlayers.clear();for(const n of e.players||[])n.id!==localPlayerId&&n.position&&remotePlayers.set(n.id,n.position);var t,o,r=e.position;r&&Number.isFinite(r.x)&&Number.isFinite(r.y)&&Number.isFinite(r.z)&&(camera.pos=[r.x,r.y,r.z],camera.rot=[Number.isFinite(r.pitch)?r.pitch:0,Number.isFinite(r.yaw)?r.yaw:0],camera.velocityY=0,camera.grounded=!1),inventoryDirty||applyServerInventory(e.inventory),applyServerEdits(e.edits),hasLoadedServerState=!0,lastNetworkUpdate=performance.now();for([t,o]of pendingWorldEdits)blockEdits.set(t,null===o.color?null:{x:o.x,y:o.y,z:o.z,color:o.color,type:itemTypeFromColor(o.color)});flushPendingWorldEdits(),inventoryDirty&&worldSocket.send(JSON.stringify({type:"inventory",inventory:inventoryPayload()})),sendPlayerPosition()}function connectWorldSocket(){worldSocket=new WebSocket(socketUrl),worldSocket.addEventListener("message",e=>{let t;try{t=JSON.parse(e.data)}catch{return}if("welcome"!==t.type)if("inventory_saved"!==t.type)if("player_state"!==t.type)if("player_left"!==t.type){if("world_edit"===t.type&&t.edit){const r=t.edit;var o;Number.isInteger(r.x)&&Number.isInteger(r.y)&&Number.isInteger(r.z)&&(o=blockKey(r.x,r.y,r.z),null===r.color?(blockEdits.set(o,null),placedBlocks.delete(o)):"string"==typeof r.color&&/^#[0-9a-fA-F]{6}$/.test(r.color)&&(e=r.color.toLowerCase(),blockEdits.set(o,{x:r.x,y:r.y,z:r.z,color:e,type:worldBlockTypeFromColor(e)})))}}else remotePlayers.delete(t.player_id);else t.player_id!==localPlayerId&&t.position&&remotePlayers.set(t.player_id,t.position);else inventoryDirty=!1;else applyWelcome(t)}),worldSocket.addEventListener("close",()=>{hasLoadedServerState=!1,stopMining(),window.setTimeout(connectWorldSocket,2e3)}),worldSocket.addEventListener("error",()=>{worldSocket.close()})}function raycast(e=7){var t=camera.rot[0],o=camera.rot[1],t=[Math.sin(o)*Math.cos(t),Math.sin(t),Math.cos(o)*Math.cos(t)];const r=[camera.pos[0],camera.pos[1]+EYE_HEIGHT,camera.pos[2]],n=r.map(Math.floor);let a=null;var i=Math.sign(t[0]),c=Math.sign(t[1]),l=Math.sign(t[2]),s=0===t[0]?1/0:Math.abs(1/t[0]),d=0===t[1]?1/0:Math.abs(1/t[1]),p=0===t[2]?1/0:Math.abs(1/t[2]);let u=0<t[0]?(n[0]+1-r[0])/t[0]:t[0]<0?(r[0]-n[0])/-t[0]:1/0,m=0<t[1]?(n[1]+1-r[1])/t[1]:t[1]<0?(r[1]-n[1])/-t[1]:1/0,y=0<t[2]?(n[2]+1-r[2])/t[2]:t[2]<0?(r[2]-n[2])/-t[2]:1/0,v=0;for(;v<=e;){var g=getBlock(n[0],n[1],n[2]);if(g&&(isSolid(n[0],n[1],n[2])||isDoorBlock(g)))return{hit:[...n],previous:a};a=[...n];g=Math.min(u,m,y);if(!Number.isFinite(g)||e<g)break;u<=g+1e-10&&(n[0]+=i,u+=s),m<=g+1e-10&&(n[1]+=c,m+=d),y<=g+1e-10&&(n[2]+=l,y+=p),v=g}return null}function toggleTargetedDoor(){var e=raycast();if(!e)return!1;var[t,o,r]=e.hit;const n=getBlock(t,o,r);if(!isDoorBlock(n))return!1;var a=n.type.startsWith("door_top_")?o-1:o,e=getBlock(t,a,r),o=getBlock(t,a+1,r);if(!isDoorBlock(e)||!isDoorBlock(o))return!1;o=!isOpenDoorBlock(e),e=o?"door_bottom_open":"door_bottom_closed",o=o?"door_top_open":"door_top_closed";return writeWorldBlock(t,a,r,DOOR_BLOCK_COLORS[e],e),writeWorldBlock(t,a+1,r,DOOR_BLOCK_COLORS[o],o),!0}function startMining(e){var t;inventoryOpen||(t=0===miningSources.size,miningSources.add(e),t&&(miningTargetKey=null,miningStartedAt=0))}function stopMining(e){void 0===e?miningSources.clear():miningSources.delete(e),0===miningSources.size&&(miningTargetKey=null,miningStartedAt=0,mineProgressElement.style.display="none",mineProgressElement.style.setProperty("--progress","0deg"))}function updateMining(e){if(inventoryOpen||0===miningSources.size)mineProgressElement.style.display="none";else{var t=raycast();if(!t)return miningTargetKey=null,miningStartedAt=0,void(mineProgressElement.style.display="none");var[o,r,n]=t.hit,t=blockKey(o,r,n);t!==miningTargetKey&&(miningTargetKey=t,miningStartedAt=e);t=Math.min(1,(e-miningStartedAt)/MINE_DURATION_MS);mineProgressElement.style.display="block",mineProgressElement.style.setProperty("--progress",`${360*t}deg`),t<1||((t=getBlock(o,r,n))&&addToInventory(t.color,t.type||itemTypeFromColor(t.color))?(removeBlock(o,r,n),miningTargetKey=null,miningStartedAt=e):stopMining())}}function placeBlock(){if(!inventoryOpen){var e,t,o,r,n=performance.now();if(!(n-lastSuccessfulPlacementAt<PLACE_COOLDOWN_MS)){const a=inventory[selectedSlot];!a||a.count<=0||(r=raycast())&&r.previous&&([e,t,o]=r.previous,isSolid(e,t,o)||camera.pos[0]+PLAYER_HALF_WIDTH>e&&camera.pos[0]-PLAYER_HALF_WIDTH<e+1&&camera.pos[1]+PLAYER_HEIGHT>t&&camera.pos[1]<t+1&&camera.pos[2]+PLAYER_HALF_WIDTH>o&&camera.pos[2]-PLAYER_HALF_WIDTH<o+1||(r=a.type||itemTypeFromColor(a.color),r={x:e,y:t,z:o,color:a.color,type:r},blockEdits.set(blockKey(e,t,o),r),sendWorldEdit(e,t,o,a.color),a.count--,a.count<=0&&(inventory[selectedSlot]=null),lastSuccessfulPlacementAt=n,renderInventory(),syncInventory()))}}}function playerOverlapsCell(e,t,o){return camera.pos[0]+PLAYER_HALF_WIDTH>e&&camera.pos[0]-PLAYER_HALF_WIDTH<e+1&&camera.pos[1]+PLAYER_HEIGHT>t&&camera.pos[1]<t+1&&camera.pos[2]+PLAYER_HALF_WIDTH>o&&camera.pos[2]-PLAYER_HALF_WIDTH<o+1}function writeWorldBlock(e,t,o,r,n){n={x:e,y:t,z:o,color:r,type:n};blockEdits.set(blockKey(e,t,o),n),sendWorldEdit(e,t,o,r)}function placeBlock(){if(!inventoryOpen){var e=performance.now();if(!(e-lastSuccessfulPlacementAt<PLACE_COOLDOWN_MS)){const a=inventory[selectedSlot];if(a&&!(a.count<=0)){var t=a.type||itemTypeFromColor(a.color),o=raycast();if(o?.previous){var[r,n,o]=o.previous;if("door"===t){if(!isSolid(r,n-1,o))return;if(isSolid(r,n,o)||isSolid(r,n+1,o))return;if(playerOverlapsCell(r,n,o)||playerOverlapsCell(r,n+1,o))return;writeWorldBlock(r,n,o,DOOR_BLOCK_COLORS.door_bottom_closed,"door_bottom_closed"),writeWorldBlock(r,n+1,o,DOOR_BLOCK_COLORS.door_top_closed,"door_top_closed")}else{if(isSolid(r,n,o)||playerOverlapsCell(r,n,o))return;writeWorldBlock(r,n,o,a.color,t)}a.count--,a.count<=0&&(inventory[selectedSlot]=null),lastSuccessfulPlacementAt=e,renderInventory(),syncInventory()}}}}}function playerOverlapsBlock(e,t,o,r){return e+PLAYER_HALF_WIDTH>r.x&&e-PLAYER_HALF_WIDTH<r.x+1&&o+PLAYER_HALF_WIDTH>r.z&&o-PLAYER_HALF_WIDTH<r.z+1&&t+PLAYER_HEIGHT>r.y&&t<r.y+1}function findOverlappingBlock(r,n,a){var e=Math.floor(r-PLAYER_HALF_WIDTH),t=Math.floor(r+PLAYER_HALF_WIDTH),i=Math.floor(a-PLAYER_HALF_WIDTH),c=Math.floor(a+PLAYER_HALF_WIDTH),l=Math.floor(n+.001),s=Math.floor(n+PLAYER_HEIGHT-.001);for(let o=e;o<=t;o++)for(let t=l;t<=s;t++)for(let e=i;e<=c;e++){var d=getBlock(o,t,e);if(d&&isSolid(o,t,e)&&playerOverlapsBlock(r,n,a,d))return d}return null}function columnSupportHeight(e,t,o){var r=Math.floor(e),n=Math.floor(t);for(let e=Math.floor(o+1e-9);e>=WORLD_MIN_Y;e--)if(isSolid(r,e,n))return e+1;return WORLD_MIN_Y}function playerSupportHeight(e,t,o){var r,n,a=.02,a=[[e,t],[e-PLAYER_HALF_WIDTH+a,t-PLAYER_HALF_WIDTH+a],[e+PLAYER_HALF_WIDTH-a,t-PLAYER_HALF_WIDTH+a],[e-PLAYER_HALF_WIDTH+a,t+PLAYER_HALF_WIDTH-a],[e+PLAYER_HALF_WIDTH-a,t+PLAYER_HALF_WIDTH-a]];let i=WORLD_MIN_Y;for([r,n]of a)i=Math.max(i,columnSupportHeight(r,n,o));return i}function tryHorizontalMove(e,t){var o=camera.pos[0]+e,r=camera.pos[2]+t,e=playerSupportHeight(o,r,camera.pos[1]);let n=camera.pos[1];if(camera.grounded){t=e-camera.pos[1];if(t>MAX_STEP_HEIGHT+1e-9)return;!(.001<t)&&t<-.001?camera.grounded=!1:n=e}findOverlappingBlock(o,n,r)||(camera.pos[0]=o,camera.pos[1]=n,camera.pos[2]=r)}function updatePhysics(r){if(!inventoryOpen){let e=0,t=0;(keys.KeyW||keys.ArrowUp)&&e++,(keys.KeyS||keys.ArrowDown)&&e--,keys.KeyD&&t++,keys.KeyA&&t--,e+=-gamepadMoveY-touchMoveY,t+=gamepadMoveX+touchMoveX;var o,n,a=Math.hypot(e,t);0<a&&(n=Math.max(1,a),e/=n,t/=n,o=camera.rot[1],a=MOVE_SPEED*r,n=(Math.sin(o)*e+Math.cos(o)*t)*a,a=(Math.cos(o)*e-Math.sin(o)*t)*a,tryHorizontalMove(n,0),tryHorizontalMove(0,a)),jumpRequested&&camera.grounded&&(camera.velocityY=JUMP_SPEED,camera.grounded=!1),jumpRequested=!1;var i=camera.pos[1];camera.velocityY-=GRAVITY*r,camera.pos[1]+=camera.velocityY*r,camera.grounded=!1;r=playerSupportHeight(camera.pos[0],camera.pos[2],camera.pos[1]);camera.velocityY<=0&&camera.pos[1]<=r&&(camera.pos[1]=r,camera.velocityY=0,camera.grounded=!0);var r=Math.floor(camera.pos[0]-PLAYER_HALF_WIDTH),c=Math.floor(camera.pos[0]+PLAYER_HALF_WIDTH),l=Math.floor(camera.pos[2]-PLAYER_HALF_WIDTH),s=Math.floor(camera.pos[2]+PLAYER_HALF_WIDTH),d=Math.floor(camera.pos[1]-1),p=Math.floor(camera.pos[1]+PLAYER_HEIGHT+1);for(let o=r;o<=c;o++)for(let t=l;t<=s;t++)for(let e=d;e<=p;e++){var u,m,y=getBlock(o,e,t);y&&camera.pos[0]+PLAYER_HALF_WIDTH>y.x&&camera.pos[0]-PLAYER_HALF_WIDTH<y.x+1&&camera.pos[2]+PLAYER_HALF_WIDTH>y.z&&camera.pos[2]-PLAYER_HALF_WIDTH<y.z+1&&(u=i+PLAYER_HEIGHT,m=camera.pos[1]+PLAYER_HEIGHT,0<camera.velocityY&&u<=y.y+.02&&m>y.y&&(camera.pos[1]=y.y-PLAYER_HEIGHT,camera.velocityY=0))}}}const CUBE_VERTICES=[[-.5,-.5,-.5],[.5,-.5,-.5],[.5,.5,-.5],[-.5,.5,-.5],[-.5,-.5,.5],[.5,-.5,.5],[.5,.5,.5],[-.5,.5,.5]],CUBE_FACES=[{ids:[0,1,2,3],neighbor:[0,0,-1],shade:.78},{ids:[4,5,6,7],neighbor:[0,0,1],shade:1},{ids:[0,1,5,4],neighbor:[0,-1,0],shade:.62},{ids:[2,3,7,6],neighbor:[0,1,0],shade:1.12},{ids:[0,3,7,4],neighbor:[-1,0,0],shade:.86},{ids:[1,2,6,5],neighbor:[1,0,0],shade:.72}];function shadeColor(e,t){const o=e.replace("#","");var r=parseInt(o.slice(0,2),16),n=parseInt(o.slice(2,4),16),a=parseInt(o.slice(4,6),16),e=e=>Math.max(0,Math.min(255,Math.round(e*t)));return`rgb(${e(r)},${e(n)},${e(a)})`}function worldToCamera(e){var t=e[0]-camera.pos[0],o=e[1]-(camera.pos[1]+EYE_HEIGHT),e=e[2]-camera.pos[2];return[t,e]=rotate2d([t,e],camera.rot[1]),[o,e]=rotate2d([o,e],camera.rot[0]),[t,o,e]}function clipNear(t,o=.1){const r=[];for(let e=0;e<t.length;e++){var n,a=t[e],i=t[(e+t.length-1)%t.length],c=a[2]>=o;c!=i[2]>=o&&(n=a[2]-i[2],1e-12<Math.abs(n)&&(n=(o-i[2])/n,r.push([i[0]+(a[0]-i[0])*n,i[1]+(a[1]-i[1])*n,o]))),c&&r.push(a)}return r}function project(e){var t=Math.max(1,.55*Math.min(screenWidth,screenHeight))/e[2];return[centerX+e[0]*t,centerY-e[1]*t]}function clipScreenPolygon(e){let t=e;for(const i of[{inside:e=>0<=e[0],intersect:(e,t)=>{var o=t[0]-e[0];if(Math.abs(o)<1e-12)return null;o=-e[0]/o;return[0,e[1]+(t[1]-e[1])*o]}},{inside:e=>e[0]<=screenWidth,intersect:(e,t)=>{var o=t[0]-e[0];if(Math.abs(o)<1e-12)return null;o=(screenWidth-e[0])/o;return[screenWidth,e[1]+(t[1]-e[1])*o]}},{inside:e=>0<=e[1],intersect:(e,t)=>{var o=t[1]-e[1];if(Math.abs(o)<1e-12)return null;o=-e[1]/o;return[e[0]+(t[0]-e[0])*o,0]}},{inside:e=>e[1]<=screenHeight,intersect:(e,t)=>{var o=t[1]-e[1];if(Math.abs(o)<1e-12)return null;o=(screenHeight-e[1])/o;return[e[0]+(t[0]-e[0])*o,screenHeight]}}]){if(0===t.length)break;var o=t;t=[];for(let e=0;e<o.length;e++){var r=o[e],n=o[(e+o.length-1)%o.length],a=i.inside(r);a===i.inside(n)||(n=i.intersect(n,r))&&Number.isFinite(n[0])&&Number.isFinite(n[1])&&t.push(n),a&&t.push(r)}}return t}function faceFacesCamera(e,t,o=[.5,.5,.5]){o=[e[0]+t[0]*o[0],e[1]+t[1]*o[1],e[2]+t[2]*o[2]],o=[camera.pos[0]-o[0],camera.pos[1]+EYE_HEIGHT-o[1],camera.pos[2]-o[2]];return 0<t[0]*o[0]+t[1]*o[1]+t[2]*o[2]}function addCubeFaces(e,t){if(isDoorBlock(t))addDoorPanelFaces(e,t);else{const a=[t.x+.5,t.y+.5,t.z+.5],i=CUBE_VERTICES.map(([e,t,o])=>worldToCamera([a[0]+e,a[1]+t,a[2]+o]));for(const c of CUBE_FACES){var[o,r,n]=c.neighbor;if(faceFacesCamera(a,[o,r,n])&&!isSolid(t.x+o,t.y+r,t.z+n)){const l=clipNear(c.ids.map(e=>i[e]));l.length<3||(n=l.reduce((e,t)=>e+t[2],0)/l.length,e.push({depth:n,points:l,color:shadeColor(t.color,c.shade)}))}}}}function addRemoteAvatarFaces(e,t,o){if(t&&Number.isFinite(t.x)&&Number.isFinite(t.y)&&Number.isFinite(t.z))for(const a of[{center:[t.x,t.y+.85,t.z],scale:[.65,.85,.4],color:o},{center:[t.x,t.y+1.5,t.z],scale:[.42,.42,.42],color:"#e4bd96"}]){var r,n=a.scale.map(e=>e/2);const i=CUBE_VERTICES.map(([e,t,o])=>worldToCamera([a.center[0]+e*a.scale[0],a.center[1]+t*a.scale[1],a.center[2]+o*a.scale[2]]));for(const c of CUBE_FACES)if(faceFacesCamera(a.center,c.neighbor,n)){const l=clipNear(c.ids.map(e=>i[e]));l.length<3||(r=l.reduce((e,t)=>e+t[2],0)/l.length,e.push({depth:r,points:l,color:shadeColor(a.color,c.shade)}))}}}function playerColor(e){var t=["#e05252","#4a86df","#55ad68","#d19b39","#a66bd1","#38aaa2"];let o=0;for(const r of e)o=Math.imul(o^r.charCodeAt(0),16777619);return t[(o>>>0)%t.length]}function addDoorPanelFaces(e,t){var o=isOpenDoorBlock(t);const r=t.x+.06,n=t.z+.5,a=o?{x:0,z:1}:{x:1,z:0},i=o?{x:-1,z:0}:{x:0,z:1},c=t.y+.01,l=t.y+.99,s=CUBE_VERTICES.map(([e,t,o])=>{e=.88*(e+.5),o*=.08;return[r+a.x*e+i.x*o,t<0?c:l,n+a.z*e+i.z*o]}),d=s.map(worldToCamera);for(const v of CUBE_FACES){var[p,u,m]=v.neighbor,p=[a.x*p+i.x*m,u,a.z*p+i.z*m],y=v.ids.map(e=>s[e]);const g=[0,0,0];for(const f of y)g[0]+=f[0]/y.length,g[1]+=f[1]/y.length,g[2]+=f[2]/y.length;m=[camera.pos[0]-g[0],camera.pos[1]+EYE_HEIGHT-g[1],camera.pos[2]-g[2]];if(0<p[0]*m[0]+p[1]*m[1]+p[2]*m[2]){const h=clipNear(v.ids.map(e=>d[e]));h.length<3||(m=h.reduce((e,t)=>e+t[2],0)/h.length,e.push({depth:m,points:h,color:shadeColor(t.color,v.shade)}))}}}function render(){ctx.fillStyle="#dce8f2",ctx.fillRect(0,0,screenWidth,screenHeight);const r=[];var e,t,o,n,a,i,c=Math.floor(camera.pos[0])-RENDER_RADIUS,l=Math.floor(camera.pos[0])+RENDER_RADIUS,s=Math.floor(camera.pos[2])-RENDER_RADIUS,d=Math.floor(camera.pos[2])+RENDER_RADIUS;for(let o=c;o<=l;o++)for(let t=s;t<=d;t++){var p=terrainHeight(o,t);for(let e=WORLD_MIN_Y;e<p+7;e++){var u=getBlock(o,e,t);u&&addCubeFaces(r,u)}}for([e,t]of placedBlocks)blockEdits.has(e)||t.x>=c-1&&t.x<=l&&t.z>=s-1&&t.z<=d&&t.y>=terrainHeight(t.x,t.z)+7&&addCubeFaces(r,t);for([o,n]of blockEdits)n&&!placedBlocks.has(o)&&n.x>=c-1&&n.x<=l&&n.z>=s-1&&n.z<=d&&n.y>=terrainHeight(n.x,n.z)+7&&addCubeFaces(r,n);for([a,i]of remotePlayers)addRemoteAvatarFaces(r,i,playerColor(a));r.sort((e,t)=>t.depth-e.depth),ctx.save(),ctx.beginPath(),ctx.rect(0,0,screenWidth,screenHeight),ctx.clip();for(const y of r){var m=clipScreenPolygon(y.points.map(project));if(!(m.length<3)){ctx.beginPath(),ctx.moveTo(m[0][0],m[0][1]);for(let e=1;e<m.length;e++)ctx.lineTo(m[e][0],m[e][1]);ctx.closePath(),ctx.fillStyle=y.color,ctx.fill(),ctx.strokeStyle="rgba(0,0,0,0.12)",ctx.stroke()}}ctx.restore()}function bindVirtualJoystick(c,l,r){if(c){let o=null;function t(e){var t=c.getBoundingClientRect(),o=t.left+t.width/2,r=t.top+t.height/2,t=.34*t.width;let n=e.clientX-o,a=e.clientY-r;r=Math.hypot(n,a);t<r&&(r=t/r,n*=r,a*=r);const i=c.querySelector(".touch-stick-knob");i.style.setProperty("--knob-x",`${n}px`),i.style.setProperty("--knob-y",`${a}px`),l(n/t,a/t)}function e(e){if(e.pointerId===o){o=null;const t=c.querySelector(".touch-stick-knob");t.style.setProperty("--knob-x","0px"),t.style.setProperty("--knob-y","0px"),r()}}c.addEventListener("pointerdown",e=>{e.preventDefault(),null===o&&(o=e.pointerId,c.setPointerCapture(e.pointerId),t(e))}),c.addEventListener("pointermove",e=>{e.pointerId===o&&(e.preventDefault(),t(e))}),c.addEventListener("pointerup",e),c.addEventListener("pointercancel",e),c.addEventListener("lostpointercapture",e)}}function bindTouchAction(t,o){let r=null;function e(e){e.pointerId===r&&(r=null,"mine"===o&&stopMining("touch"))}t.addEventListener("pointerdown",e=>{e.preventDefault(),null===r&&(r=e.pointerId,t.setPointerCapture(e.pointerId),"jump"===o?jumpRequested=!0:"mine"===o?startMining("touch"):"place"===o&&placeBlock())}),t.addEventListener("pointerup",e),t.addEventListener("pointercancel",e),t.addEventListener("lostpointercapture",e)}function readGamepadAxis(e,t,o=.16){t=e.axes[t]||0;return Math.abs(t)<o?0:t}function readGamepadButton(e,t){t=e.buttons[t];return Boolean(t&&(t.pressed||.55<t.value))}function risingEdge(e,t){return t&&!previousPadActions[e]}function moveInventoryCursor(e){gamepadInventoryCursor=(gamepadInventoryCursor+e+inventory.length)%inventory.length,gamepadInventoryCursor<9&&(selectedSlot=gamepadInventoryCursor),renderInventory()}function activateGamepadInventorySlot(){var e,t;null===gamepadDragSource?(gamepadDragSource=gamepadInventoryCursor,gamepadInventoryCursor<9&&(selectedSlot=gamepadInventoryCursor)):((e=gamepadDragSource)!==(t=gamepadInventoryCursor)&&([inventory[e],inventory[t]]=[inventory[t],inventory[e]],syncInventory()),gamepadDragSource=null),renderInventory()}function clearGamepadPressedState(){for(const e of Object.keys(previousPadActions))previousPadActions[e]=!1}function updateGamepad(){if(!navigator.getGamepads)return controllerStatus.textContent=" · Controller API unavailable",void(gamepadMoveX=gamepadMoveY=gamepadLookX=gamepadLookY=0);let t=null;try{t=Array.from(navigator.getGamepads()).find(e=>e&&e.connected)||null}catch{t=null}if(!t)return gamepadMoveX=gamepadMoveY=gamepadLookX=gamepadLookY=0,controllerStatus.textContent=" · Controller: not connected",clearGamepadPressedState(),void stopMining("gamepad");controllerStatus.textContent=` · Controller: ${t.id||"connected"}`,gamepadMoveX=readGamepadAxis(t,0),gamepadMoveY=readGamepadAxis(t,1),gamepadLookX=readGamepadAxis(t,2),gamepadLookY=readGamepadAxis(t,3);var e=e=>readGamepadButton(t,e),o=e(0),r=e(1),n=e(2),a=e(3),i=e(4)||e(6),c=e(5)||e(7),l=e(12),s=e(13),d=e(14),e=e(15);risingEdge("inventory",n)&&setInventoryOpen(!inventoryOpen),inventoryOpen?(risingEdge("dpadUp",l)&&moveInventoryCursor(-9),risingEdge("dpadDown",s)&&moveInventoryCursor(9),risingEdge("dpadLeft",d)&&moveInventoryCursor(-1),risingEdge("dpadRight",e)&&moveInventoryCursor(1),risingEdge("jump",o)&&activateGamepadInventorySlot(),risingEdge("back",r)&&(gamepadDragSource=null,setInventoryOpen(!1)),stopMining("gamepad")):((risingEdge("dpadLeft",d)||risingEdge("dpadUp",l))&&(selectedSlot=(selectedSlot+8)%9,gamepadInventoryCursor=selectedSlot,renderInventory()),(risingEdge("dpadRight",e)||risingEdge("dpadDown",s)||risingEdge("nextSlot",a))&&(selectedSlot=(selectedSlot+1)%9,gamepadInventoryCursor=selectedSlot,renderInventory()),risingEdge("jump",o)&&(jumpRequested=!0),(i?startMining:stopMining)("gamepad"),risingEdge("place",c)&&placeBlock()),previousPadActions.jump=o,previousPadActions.mine=i,previousPadActions.place=c,previousPadActions.inventory=n,previousPadActions.back=r,previousPadActions.nextSlot=a,previousPadActions.dpadUp=l,previousPadActions.dpadDown=s,previousPadActions.dpadLeft=d,previousPadActions.dpadRight=e}function connectWorldSocket(){worldSocket=new WebSocket(socketUrl),worldSocket.addEventListener("message",e=>{let t;try{t=JSON.parse(e.data)}catch{return}if("welcome"!==t.type)if("inventory_saved"!==t.type)if("player_state"!==t.type)if("player_left"!==t.type){if("world_edit"===t.type&&t.edit){const r=t.edit;var o;Number.isInteger(r.x)&&Number.isInteger(r.y)&&Number.isInteger(r.z)&&(o=blockKey(r.x,r.y,r.z),null===r.color?(blockEdits.set(o,null),placedBlocks.delete(o)):"string"==typeof r.color&&/^#[0-9a-fA-F]{6}$/.test(r.color)&&(e=r.color.toLowerCase(),blockEdits.set(o,{x:r.x,y:r.y,z:r.z,color:e,type:worldBlockTypeFromColor(e)})))}}else remotePlayers.delete(t.player_id);else t.player_id!==localPlayerId&&t.position&&remotePlayers.set(t.player_id,t.position);else inventoryDirty=!1;else applyWelcome(t)}),worldSocket.addEventListener("close",()=>{hasLoadedServerState=!1,stopMining(),window.setTimeout(connectWorldSocket,2e3)}),worldSocket.addEventListener("error",()=>{worldSocket.close()})}document.addEventListener("keydown",e=>"KeyE"!==e.code||e.repeat?"Escape"===e.code&&inventoryOpen?(gamepadDragSource=null,void setInventoryOpen(!1)):(/^Digit[1-9]$/.test(e.code)&&(selectedSlot=Number(e.code.slice(5))-1,gamepadInventoryCursor=selectedSlot,renderInventory()),void(inventoryOpen||(keys[e.code]=!0,"Space"!==e.code||e.repeat||(toggleTargetedDoor(),jumpRequested=!0),["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)&&e.preventDefault()))):(e.preventDefault(),void setInventoryOpen(!inventoryOpen)),!0),document.addEventListener("keyup",e=>{keys[e.code]=!1},!0),window.addEventListener("blur",()=>{for(const e of Object.keys(keys))keys[e]=!1;jumpRequested=!1,stopMining()}),canvas.addEventListener("contextmenu",e=>{e.preventDefault()}),canvas.addEventListener("pointerdown",e=>{inventoryOpen||(2===e.button?(e.preventDefault(),startMining("mouse")):0===e.button&&(e.preventDefault(),placeBlock()),document.pointerLockElement!==canvas&&canvas.requestPointerLock?.())}),window.addEventListener("pointerup",e=>{2===e.button&&stopMining("mouse")}),window.addEventListener("pointercancel",()=>{stopMining("mouse")}),document.addEventListener("pointerlockchange",()=>{canvas.style.cursor=document.pointerLockElement===canvas?"none":"default"}),document.addEventListener("mousemove",e=>{document.pointerLockElement!==canvas||inventoryOpen||camera.mouseMove(e.movementX||0,e.movementY||0)}),bindVirtualJoystick(document.getElementById("moveStick"),(e,t)=>{touchMoveX=e,touchMoveY=t},()=>{touchMoveX=0,touchMoveY=0}),bindVirtualJoystick(document.getElementById("lookStick"),(e,t)=>{touchLookX=e,touchLookY=t},()=>{touchLookX=0,touchLookY=0}),document.querySelectorAll("[data-touch-action]").forEach(e=>{bindTouchAction(e,e.dataset.touchAction)}),document.getElementById("bagButton").addEventListener("pointerdown",e=>{e.preventDefault(),e.stopPropagation(),setInventoryOpen(!inventoryOpen)},{passive:!1}),window.addEventListener("gamepadconnected",e=>{controllerStatus.textContent=` · Controller: ${e.gamepad.id||"connected"}`}),window.addEventListener("gamepaddisconnected",()=>{controllerStatus.textContent=" · Controller: not connected",gamepadMoveX=gamepadMoveY=gamepadLookX=gamepadLookY=0,clearGamepadPressedState(),stopMining("gamepad")}),renderInventory(),updateCoordinates(),connectWorldSocket();let previousTime=performance.now();function frame(e){var t=Math.min(.05,(e-previousTime)/1e3);previousTime=e,updateGamepad(),inventoryOpen||camera.mouseMove(2.4*(gamepadLookX+touchLookX)*t*200,2.4*(gamepadLookY+touchLookY)*t*200),updatePhysics(t),updateMining(e),syncPlayerPosition(e),updateCoordinates(),render(),requestAnimationFrame(frame)}requestAnimationFrame(frame)</script>
+<!doctypehtml><html lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"name=viewport><title>Voxel Terrain Game</title><style>:root{--slot-size:48px}body,html{width:100%;height:100%;margin:0;overflow:hidden;background:#dce8f2;font-family:sans-serif}canvas{display:block;width:100%;height:100%;background:#dce8f2;touch-action:none}.hint{position:fixed;top:8px;left:8px;z-index:5;max-width:calc(100vw - 160px);padding:7px 9px;border-radius:4px;background:rgba(255,255,255,.9);font-size:14px;pointer-events:none}#controllerStatus{color:#555}#coordinates{position:fixed;top:max(8px,env(safe-area-inset-top));right:8px;z-index:5;padding:7px 9px;border-radius:4px;background:rgba(255,255,255,.9);color:#222;font:12px/1.2 monospace;white-space:nowrap;pointer-events:none}#crosshair{position:fixed;top:50%;left:50%;z-index:5;width:20px;height:20px;transform:translate(-50%,-50%);pointer-events:none}#crosshair::after,#crosshair::before{position:absolute;top:50%;left:50%;content:"";background:#fff;box-shadow:0 0 2px #000,0 0 4px #000;transform:translate(-50%,-50%)}#crosshair::before{width:2px;height:18px}#crosshair::after{width:18px;height:2px}#mineProgress{position:fixed;top:50%;left:50%;z-index:4;display:none;width:38px;height:38px;border-radius:50%;background:conic-gradient(from -90deg,#31e66b var(--progress,0deg),transparent var(--progress,0deg));transform:translate(-50%,-50%);pointer-events:none;-webkit-mask:radial-gradient(farthest-side,transparent 69%,#000 72%);mask:radial-gradient(farthest-side,transparent 69%,#000 72%)}#hotbar{position:fixed;bottom:18px;left:50%;z-index:6;display:flex;gap:4px;transform:translateX(-50%)}#inventoryPanel{position:fixed;top:50%;left:50%;z-index:12;display:none;box-sizing:border-box;width:max-content;max-width:calc(100vw - 16px);max-height:calc(100vh - 24px);padding:14px;overflow:auto;border:2px solid #594c3c;border-radius:8px;background:rgba(37,34,30,.96);color:#fff;transform:translate(-50%,-50%);box-shadow:0 8px 28px rgba(0,0,0,.4)}#inventoryPanel.open{display:block}#inventoryTitle{margin:0 0 10px;font-size:16px;font-weight:400}#inventoryGrid{display:grid;grid-template-columns:repeat(9,var(--slot-size));gap:4px}.slot{position:relative;box-sizing:border-box;width:var(--slot-size);height:var(--slot-size);border:2px solid #897a65;border-radius:4px;background:rgba(130,117,97,.65);cursor:pointer;user-select:none;touch-action:manipulation}.slot:hover{border-color:#fff}.slot.selected{border-color:#ffe178;box-shadow:0 0 0 2px rgba(255,225,120,.45)}.slot.gamepad-cursor{outline:3px solid #80e8ff;outline-offset:2px}.slotColor{position:absolute;inset:8px;border:1px solid rgba(0,0,0,.35);border-radius:3px;pointer-events:none}.slotCount{position:absolute;right:3px;bottom:1px;color:#fff;font-size:13px;font-weight:700;text-shadow:1px 1px 2px #000;pointer-events:none}.slotNumber{position:absolute;top:1px;left:3px;color:rgba(255,255,255,.85);font-size:11px;text-shadow:1px 1px 2px #000;pointer-events:none}.craftingPanel{width:min(560px,calc(100vw - 60px));margin-top:14px;padding-top:10px;border-top:1px solid rgba(255,255,255,.35)}.craftingPanel h3{margin:0 0 8px;font-size:15px;font-weight:400}#craftingRecipes{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:6px}.craftButton{min-height:42px;padding:6px 8px;border:1px solid #897a65;border-radius:4px;background:#51483c;color:#fff;text-align:left;cursor:pointer}.craftButton:hover:not(:disabled){background:#6a5a46;border-color:#ffe178}.craftButton:disabled{opacity:.5;cursor:not-allowed}.craftStatus{min-height:1em;margin:7px 0 0;color:#ffd876;font-size:12px}#touchControls{display:none}.touch-stick{position:fixed;bottom:22px;z-index:8;box-sizing:border-box;width:132px;height:132px;border:2px solid rgba(255,255,255,.7);border-radius:50%;background:rgba(35,45,50,.32);touch-action:none;user-select:none}#moveStick{left:20px}#lookStick{right:20px}.touch-stick-knob{position:absolute;top:50%;left:50%;width:54px;height:54px;border:2px solid rgba(255,255,255,.9);border-radius:50%;background:rgba(225,235,240,.62);transform:translate(calc(-50% + var(--knob-x,0)),calc(-50% + var(--knob-y,0)));pointer-events:none}.stick-label{position:absolute;right:0;bottom:8px;left:0;color:#fff;font-size:10px;text-align:center;text-shadow:1px 1px 2px #000;pointer-events:none}.touch-actions{position:fixed;right:24px;bottom:174px;z-index:9;display:grid;grid-template-columns:repeat(2,58px);gap:8px}.touch-actions button{min-width:58px;min-height:54px;padding:4px;border:2px solid rgba(255,255,255,.8);border-radius:12px;background:rgba(35,45,50,.72);color:#fff;font:bold 12px sans-serif;text-shadow:1px 1px 2px #000;touch-action:none;user-select:none}.touch-actions button:active{background:rgba(100,130,145,.95);transform:scale(.96)}@media (pointer:coarse){:root{--slot-size:min(42px, calc((100vw - 70px) / 9))}#touchControls{display:block}#hotbar{bottom:5px;z-index:10}.hint{font-size:12px}}@media (pointer:coarse) and (max-width:420px){.touch-stick{width:112px;height:112px}#moveStick{left:12px}#lookStick{right:12px}.touch-actions{right:14px;bottom:144px}.slotColor{inset:6px}}</style><div class=hint>WASD move · Space jump · Right-click mine (hold 1s) · Left-click place · E inventory <span id=controllerStatus>· Controller: not connected</span></div><div id=coordinates aria-label="Player coordinates">X 0.0 · Y 0.0 · Z 0.0</div><canvas id=c></canvas><div id=mineProgress aria-hidden=true></div><div id=crosshair aria-hidden=true></div><div id=touchControls aria-label="Touch game controls"><div id=moveStick aria-label="Movement joystick"class=touch-stick><span class=touch-stick-knob></span> <span class=stick-label>MOVE</span></div><div id=lookStick aria-label="Look joystick"class=touch-stick><span class=touch-stick-knob></span> <span class=stick-label>LOOK</span></div><div class=touch-actions><button type=button data-touch-action=jump>A<br>Jump</button> <button type=button data-touch-action=mine>Mine<br>Hold 1s</button> <button type=button data-touch-action=place>Place</button> <button type=button id=bagButton>Bag</button></div></div><div id=hotbar></div><div id=inventoryPanel><h2 id=inventoryTitle>Inventory — drag or select a slot</h2><div id=inventoryGrid></div><section class=craftingPanel><h3>Crafting</h3><div id=craftingRecipes></div><p aria-live=polite class=craftStatus id=craftStatus></section></div><script>"use strict";
+
+    // ---------------------------------------------------------------------
+    // Canvas
+    // ---------------------------------------------------------------------
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+    const hotbarElement = document.getElementById("hotbar");
+    const inventoryPanel = document.getElementById("inventoryPanel");
+    const inventoryGrid = document.getElementById("inventoryGrid");
+    const craftingRecipesElement = document.getElementById("craftingRecipes");
+    const craftStatusElement = document.getElementById("craftStatus");
+    const controllerStatus = document.getElementById("controllerStatus");
+    const mineProgressElement = document.getElementById("mineProgress");
+    const coordinatesElement = document.getElementById("coordinates");
+
+    let screenWidth = 0;
+    let screenHeight = 0;
+    let centerX = 0;
+    let centerY = 0;
+
+    function resizeCanvas() {
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      screenWidth = window.innerWidth;
+      screenHeight = window.innerHeight;
+      canvas.width = Math.round(screenWidth * ratio);
+      canvas.height = Math.round(screenHeight * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      centerX = screenWidth / 2;
+      centerY = screenHeight / 2;
+    }
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    // ---------------------------------------------------------------------
+    // Seeded Perlin terrain and mountain regions
+    // ---------------------------------------------------------------------
+    function createPermutation(seed) {
+      const values = Array.from({ length: 256 }, (_, index) => index);
+      let state = seed >>> 0;
+
+      function random() {
+        state = (state * 1664525 + 1013904223) >>> 0;
+        return state / 4294967296;
+      }
+
+      for (let i = values.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [values[i], values[j]] = [values[j], values[i]];
+      }
+
+      return [...values, ...values];
+    }
+
+    const permutation = createPermutation(123456);
+
+    function fade(t) {
+      return t * t * t * (t * (t * 6 - 15) + 10);
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function gradient(hash, x, y) {
+      switch (hash & 7) {
+        case 0: return x + y;
+        case 1: return -x + y;
+        case 2: return x - y;
+        case 3: return -x - y;
+        case 4: return x;
+        case 5: return -x;
+        case 6: return y;
+        default: return -y;
+      }
+    }
+
+    function perlin2(x, y) {
+      const floorX = Math.floor(x);
+      const floorY = Math.floor(y);
+      const xi = floorX & 255;
+      const yi = floorY & 255;
+      const xf = x - floorX;
+      const yf = y - floorY;
+      const u = fade(xf);
+      const v = fade(yf);
+
+      const aa = permutation[permutation[xi] + yi];
+      const ab = permutation[permutation[xi] + yi + 1];
+      const ba = permutation[permutation[xi + 1] + yi];
+      const bb = permutation[permutation[xi + 1] + yi + 1];
+
+      const left = lerp(
+        gradient(aa, xf, yf),
+        gradient(ab, xf, yf - 1),
+        v
+      );
+      const right = lerp(
+        gradient(ba, xf - 1, yf),
+        gradient(bb, xf - 1, yf - 1),
+        v
+      );
+
+      return lerp(left, right, u) * 0.7;
+    }
+
+    function smoothstep(edge0, edge1, value) {
+      const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
+      return t * t * (3 - 2 * t);
+    }
+
+    function terrainHeight(x, z) {
+      let baseNoise = 0;
+      let amplitude = 1;
+      let frequency = 1;
+      let totalAmplitude = 0;
+
+      for (let octave = 0; octave < 5; octave++) {
+        baseNoise += perlin2(
+          x * frequency / 26,
+          z * frequency / 26
+        ) * amplitude;
+
+        totalAmplitude += amplitude;
+        amplitude *= 0.52;
+        frequency *= 2;
+      }
+
+      const rollingHeight = 2 + (baseNoise / totalAmplitude) * 18;
+
+      // Subtle mountains: spread out, but not so high that they dominate
+      // the existing terrain.
+      const mountainField = perlin2(x / 165, z / 165);
+      const mountainMask = smoothstep(0.14, 0.44, mountainField);
+      const ridgeNoise = perlin2(x / 34, z / 34);
+      const ridgeShape = Math.max(0, 1 - Math.abs(ridgeNoise) / 0.7);
+      const broadNoise = perlin2(x / 76, z / 76);
+      const broadShape = Math.max(0, Math.min(1, (broadNoise + 0.7) / 1.4));
+
+      const mountainRelief =
+        2 +
+        ridgeShape * 12 +
+        broadShape * 5;
+
+      return Math.floor(rollingHeight + mountainMask * mountainRelief);
+    }
+
+    const WORLD_MIN_Y = -10;
+    const RENDER_RADIUS = 16;
+
+    const PLAYER_HALF_WIDTH = 0.28;
+    const PLAYER_HEIGHT = 1.7;
+    const EYE_HEIGHT = 1.6;
+
+    const MOVE_SPEED = 5;
+    const GRAVITY = 18;
+    const JUMP_SPEED = 7;
+    const MAX_STEP_HEIGHT = 1.0;
+    const MINE_DURATION_MS = 1000;
+    const PLACE_COOLDOWN_MS = 250;
+
+    function terrainColor(y) {
+      if (y < -4) return "#655244";
+      if (y < 0) return "#826344";
+      if (y < 4) return "#718b45";
+      if (y < 9) return "#82934b";
+      return "#a5a16e";
+    }
+    const DOOR_BLOCK_COLORS = {
+      door_bottom_closed: "#9a6836",
+      door_top_closed: "#9a6837",
+      door_bottom_open: "#9a6838",
+      door_top_open: "#9a6839"
+    };
+
+    function worldBlockTypeFromColor(color) {
+      const normalized = String(color || "").toLowerCase();
+
+      for (const [type, doorColor] of Object.entries(DOOR_BLOCK_COLORS)) {
+        if (doorColor === normalized) return type;
+      }
+
+      return itemTypeFromColor(normalized);
+    }
+
+    function isDoorBlock(block) {
+      return Boolean(block?.type?.startsWith("door_"));
+    }
+
+    function isOpenDoorBlock(block) {
+      return Boolean(block?.type?.endsWith("_open"));
+    }
+
+    // ---------------------------------------------------------------------
+    // Item types and crafting recipes
+    // ---------------------------------------------------------------------
+    const ITEM_DEFINITIONS = {
+      log:           { name: "Wood",          color: "#76502e" },
+      planks:        { name: "Planks",        color: "#b9824a" },
+      sticks:        { name: "Sticks",        color: "#c99355" },
+      stone:         { name: "Stone",         color: "#777b82" },
+      dirt:          { name: "Dirt",          color: "#826344" },
+      leaves:        { name: "Leaves",        color: "#32853b" },
+      wood_pickaxe:  { name: "Wood Pickaxe",  color: "#d9ad55" },
+      stone_pickaxe: { name: "Stone Pickaxe", color: "#98a4b5" },
+      wood_axe:      { name: "Wood Axe",      color: "#bf8d43" },
+      stone_axe:     { name: "Stone Axe",     color: "#687b91" },
+      door:          { name: "Door",          color: "#9a6836" },
+      fence:         { name: "Fence",         color: "#a97843" }
+    };
+
+    const CRAFTING_RECIPES = [
+      {
+        id: "planks",
+        label: "4 Planks",
+        ingredients: { log: 1 },
+        output: { type: "planks", count: 4 }
+      },
+      {
+        id: "sticks",
+        label: "4 Sticks",
+        ingredients: { planks: 2 },
+        output: { type: "sticks", count: 4 }
+      },
+      {
+        id: "wood_pickaxe",
+        label: "Wood Pickaxe",
+        ingredients: { planks: 3, sticks: 2 },
+        output: { type: "wood_pickaxe", count: 1 }
+      },
+      {
+        id: "stone_pickaxe",
+        label: "Stone Pickaxe",
+        ingredients: { stone: 3, sticks: 2 },
+        output: { type: "stone_pickaxe", count: 1 }
+      },
+      {
+        id: "wood_axe",
+        label: "Wood Axe",
+        ingredients: { planks: 3, sticks: 2 },
+        output: { type: "wood_axe", count: 1 }
+      },
+      {
+        id: "stone_axe",
+        label: "Stone Axe",
+        ingredients: { stone: 3, sticks: 2 },
+        output: { type: "stone_axe", count: 1 }
+      },
+      {
+        id: "door",
+        label: "3 Doors",
+        ingredients: { planks: 6 },
+        output: { type: "door", count: 3 }
+      },
+      {
+        id: "fence",
+        label: "3 Fences",
+        ingredients: { planks: 4, sticks: 2 },
+        output: { type: "fence", count: 3 }
+      }
+    ];
+
+    function itemTypeFromColor(color) {
+      const normalized = String(color || "").toLowerCase();
+
+      for (const [type, definition] of Object.entries(ITEM_DEFINITIONS)) {
+        if (definition.color.toLowerCase() === normalized) return type;
+      }
+
+      return `block:${normalized}`;
+    }
+
+    function itemDisplayName(type) {
+      return ITEM_DEFINITIONS[type]?.name || "Block";
+    }
+
+    // ---------------------------------------------------------------------
+    // Deterministic trees: about half of 12x12 regions get a tree anchor
+    // ---------------------------------------------------------------------
+    function hash2(x, z) {
+      let value = Math.imul(x, 374761393) + Math.imul(z, 668265263);
+      value = Math.imul(value ^ (value >>> 13), 1274126177);
+      return (value ^ (value >>> 16)) >>> 0;
+    }
+
+    const treeAnchorCache = new Map();
+
+    function getTreeAnchor(gridX, gridZ) {
+      const key = `${gridX},${gridZ}`;
+      if (treeAnchorCache.has(key)) return treeAnchorCache.get(key);
+
+      const hash = hash2(gridX, gridZ);
+
+      // Increased from one-in-five to one-in-two candidate grid cells.
+      if (hash % 2 !== 0) {
+        treeAnchorCache.set(key, null);
+        return null;
+      }
+
+      const tree = {
+        x: gridX * 12 + ((hash >>> 8) % 7) - 3,
+        z: gridZ * 12 + ((hash >>> 16) % 7) - 3,
+        height: 3 + ((hash >>> 24) % 3)
+      };
+
+      // Keep the initial spawn area clear.
+      if (Math.hypot(tree.x, tree.z) < 8) {
+        treeAnchorCache.set(key, null);
+        return null;
+      }
+
+      treeAnchorCache.set(key, tree);
+      return tree;
+    }
+
+    function generatedTreeBlock(x, y, z) {
+      const gridX = Math.floor(x / 12);
+      const gridZ = Math.floor(z / 12);
+
+      for (let gx = gridX - 1; gx <= gridX + 1; gx++) {
+        for (let gz = gridZ - 1; gz <= gridZ + 1; gz++) {
+          const tree = getTreeAnchor(gx, gz);
+          if (!tree) continue;
+
+          const groundY = terrainHeight(tree.x, tree.z);
+          const trunkTop = groundY + tree.height;
+
+          if (
+            x === tree.x &&
+            z === tree.z &&
+            y >= groundY &&
+            y < trunkTop
+          ) {
+            return {
+              x, y, z,
+              color: ITEM_DEFINITIONS.log.color,
+              type: "log"
+            };
+          }
+
+          const dx = Math.abs(x - tree.x);
+          const dz = Math.abs(z - tree.z);
+          const dy = y - trunkTop;
+
+          if (
+            dy >= 0 &&
+            dy <= 2 &&
+            dx <= 2 &&
+            dz <= 2 &&
+            dx + dz + Math.max(0, dy - 1) <= 3 &&
+            y >= terrainHeight(x, z)
+          ) {
+            return {
+              x, y, z,
+              color: ITEM_DEFINITIONS.leaves.color,
+              type: "leaves"
+            };
+          }
+        }
+      }
+
+      return null;
+    }
+
+    // ---------------------------------------------------------------------
+    // World blocks and edits
+    // ---------------------------------------------------------------------
+    const placedBlocks = new Map();
+    // Null entries are tombstones for mined blocks.
+    const blockEdits = new Map();
+
+    function blockKey(x, y, z) {
+      return `${x},${y},${z}`;
+    }
+
+    function addPlacedBlock(x, y, z, color, type = itemTypeFromColor(color)) {
+      placedBlocks.set(blockKey(x, y, z), { x, y, z, color, type });
+    }
+
+    function getBlock(x, y, z) {
+      const key = blockKey(x, y, z);
+
+      if (blockEdits.has(key)) {
+        const block = blockEdits.get(key);
+        if (block && !block.type) {
+          block.type = worldBlockTypeFromColor(block.color);
+        }
+        return block;
+      }
+
+      if (placedBlocks.has(key)) {
+        const block = placedBlocks.get(key);
+        if (!block.type) {
+          block.type = worldBlockTypeFromColor(block.color);
+        }
+        return block;
+      }
+
+      if (y >= WORLD_MIN_Y && y < terrainHeight(x, z)) {
+        const isStone = y < -4;
+        return {
+          x,
+          y,
+          z,
+          color: isStone ? ITEM_DEFINITIONS.stone.color : terrainColor(y),
+          type: isStone ? "stone" : "dirt"
+        };
+      }
+
+      return generatedTreeBlock(x, y, z);
+    }
+
+    function isSolid(x, y, z) {
+      const block = getBlock(x, y, z);
+      return Boolean(block && !isOpenDoorBlock(block));
+    }
+
+    addPlacedBlock(-3, terrainHeight(-3, 0), 0, "#d84838");
+    addPlacedBlock(-1, terrainHeight(-1, 0), 0, "#37a84d");
+    addPlacedBlock(1, terrainHeight(1, 0), 0, "#397bd7");
+
+    // ---------------------------------------------------------------------
+    // Camera and player state
+    // ---------------------------------------------------------------------
+    function rotate2d([x, y], radians) {
+      const sine = Math.sin(radians);
+      const cosine = Math.cos(radians);
+      return [x * cosine - y * sine, y * cosine + x * sine];
+    }
+
+    class Camera {
+      constructor(x, y, z) {
+        this.pos = [x, y, z]; // Feet position
+        this.rot = [0, 0]; // Pitch, yaw
+        this.velocityY = 0;
+        this.grounded = true;
+      }
+
+      mouseMove(dx, dy) {
+        this.rot[1] += dx / 200;
+        this.rot[0] -= dy / 200;
+
+        const pitchLimit = Math.PI / 2 - 0.01;
+        this.rot[0] = Math.max(
+          -pitchLimit,
+          Math.min(pitchLimit, this.rot[0])
+        );
+      }
+    }
+
+    const camera = new Camera(0, terrainHeight(0, -10), -10);
+
+    function updateCoordinates() {
+      const [x, y, z] = camera.pos;
+      coordinatesElement.textContent =
+        `X ${x.toFixed(1)} · Y ${y.toFixed(1)} · Z ${z.toFixed(1)}`;
+    }
+
+    // ---------------------------------------------------------------------
+    // Game state
+    // ---------------------------------------------------------------------
+    const inventory = Array.from({ length: 27 }, () => null);
+    const keys = Object.create(null);
+    const remotePlayers = new Map();
+    const pendingWorldEdits = new Map();
+
+    let selectedSlot = 0;
+    let inventoryOpen = false;
+    let jumpRequested = false;
+
+    let gamepadMoveX = 0;
+    let gamepadMoveY = 0;
+    let gamepadLookX = 0;
+    let gamepadLookY = 0;
+    let touchMoveX = 0;
+    let touchMoveY = 0;
+    let touchLookX = 0;
+    let touchLookY = 0;
+
+    let gamepadInventoryCursor = 0;
+    let gamepadDragSource = null;
+
+    const miningSources = new Set();
+    let miningTargetKey = null;
+    let miningStartedAt = 0;
+
+    let lastSuccessfulPlacementAt = -Infinity;
+    let worldSocket = null;
+    let localPlayerId = null;
+    let lastNetworkUpdate = 0;
+    let hasLoadedServerState = false;
+    let inventoryDirty = false;
+
+    const previousPadActions = {
+      jump: false,
+      mine: false,
+      place: false,
+      inventory: false,
+      back: false,
+      nextSlot: false,
+      dpadUp: false,
+      dpadDown: false,
+      dpadLeft: false,
+      dpadRight: false
+    };
+
+    // ---------------------------------------------------------------------
+    // Inventory and crafting
+    // ---------------------------------------------------------------------
+    function inventoryPayload() {
+      return inventory.map(item =>
+        item
+          ? {
+              type: item.type || itemTypeFromColor(item.color),
+              color: item.color,
+              count: item.count
+            }
+          : null
+      );
+    }
+
+    function syncInventory() {
+      inventoryDirty = true;
+
+      if (
+        !hasLoadedServerState ||
+        !worldSocket ||
+        worldSocket.readyState !== WebSocket.OPEN
+      ) {
+        return;
+      }
+
+      worldSocket.send(JSON.stringify({
+        type: "inventory",
+        inventory: inventoryPayload()
+      }));
+    }
+
+    function addToInventory(color, type = itemTypeFromColor(color)) {
+      let index = inventory.findIndex(item =>
+        item &&
+        (item.type || itemTypeFromColor(item.color)) === type &&
+        item.count < 64
+      );
+
+      if (index < 0) index = inventory.findIndex(item => !item);
+      if (index < 0) return false;
+
+      const itemColor = ITEM_DEFINITIONS[type]?.color || color;
+
+      if (!inventory[index]) {
+        inventory[index] = { type, color: itemColor, count: 0 };
+      }
+
+      inventory[index].count++;
+      renderInventory();
+      syncInventory();
+      return true;
+    }
+
+    function countInventoryItem(type) {
+      return inventory.reduce((total, item) => {
+        if (!item) return total;
+        const itemType = item.type || itemTypeFromColor(item.color);
+        return total + (itemType === type ? item.count : 0);
+      }, 0);
+    }
+
+    function hasRecipeIngredients(recipe) {
+      return Object.entries(recipe.ingredients).every(
+        ([type, count]) => countInventoryItem(type) >= count
+      );
+    }
+
+    function cloneInventory() {
+      return inventory.map(item => item ? { ...item } : null);
+    }
+
+    function countItemsIn(items, type) {
+      return items.reduce((total, item) => {
+        if (!item) return total;
+        const itemType = item.type || itemTypeFromColor(item.color);
+        return total + (itemType === type ? item.count : 0);
+      }, 0);
+    }
+
+    function consumeIngredientsFrom(items, ingredients) {
+      for (const [type, requiredCount] of Object.entries(ingredients)) {
+        let remaining = requiredCount;
+
+        for (let i = 0; i < items.length && remaining > 0; i++) {
+          const item = items[i];
+          if (!item) continue;
+
+          const itemType = item.type || itemTypeFromColor(item.color);
+          if (itemType !== type) continue;
+
+          const consumed = Math.min(item.count, remaining);
+          item.count -= consumed;
+          remaining -= consumed;
+
+          if (item.count <= 0) items[i] = null;
+        }
+
+        if (remaining > 0) return false;
+      }
+
+      return true;
+    }
+
+    function addCraftedItemTo(items, type, count) {
+      const definition = ITEM_DEFINITIONS[type];
+      if (!definition) return false;
+
+      let remaining = count;
+
+      for (let i = 0; i < items.length && remaining > 0; i++) {
+        const item = items[i];
+        if (!item) continue;
+
+        const itemType = item.type || itemTypeFromColor(item.color);
+        if (itemType !== type || item.count >= 64) continue;
+
+        const added = Math.min(64 - item.count, remaining);
+        item.count += added;
+        remaining -= added;
+      }
+
+      while (remaining > 0) {
+        const emptyIndex = items.findIndex(item => !item);
+        if (emptyIndex < 0) return false;
+
+        const added = Math.min(64, remaining);
+        items[emptyIndex] = {
+          type,
+          color: definition.color,
+          count: added
+        };
+        remaining -= added;
+      }
+
+      return true;
+    }
+
+    function craftRecipe(recipe) {
+      const draft = cloneInventory();
+
+      if (!consumeIngredientsFrom(draft, recipe.ingredients)) {
+        craftStatusElement.textContent = "Not enough materials.";
+        return;
+      }
+
+      if (!addCraftedItemTo(draft, recipe.output.type, recipe.output.count)) {
+        craftStatusElement.textContent = "Make room in your inventory first.";
+        return;
+      }
+
+      for (let i = 0; i < inventory.length; i++) {
+        inventory[i] = draft[i];
+      }
+
+      craftStatusElement.textContent =
+        `Crafted ${recipe.output.count} ${itemDisplayName(recipe.output.type)}.`;
+
+      renderInventory();
+      syncInventory();
+    }
+
+    function renderCraftingRecipes() {
+      craftingRecipesElement.replaceChildren();
+
+      for (const recipe of CRAFTING_RECIPES) {
+        const requirements = Object.entries(recipe.ingredients)
+          .map(([type, count]) => `${count} ${itemDisplayName(type)}`)
+          .join(" + ");
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "craftButton";
+        button.textContent = `${recipe.label} — ${requirements}`;
+        button.disabled = !hasRecipeIngredients(recipe);
+        button.addEventListener("click", () => craftRecipe(recipe));
+
+        craftingRecipesElement.appendChild(button);
+      }
+    }
+
+    function makeSlot(index) {
+      const item = inventory[index];
+      const element = document.createElement("div");
+
+      element.className = "slot";
+      if (index === selectedSlot) element.classList.add("selected");
+      if (index === gamepadInventoryCursor) {
+        element.classList.add("gamepad-cursor");
+      }
+
+      element.draggable = true;
+      element.title = item
+        ? `Slot ${index + 1}: ${itemDisplayName(item.type || itemTypeFromColor(item.color))} (${item.count})`
+        : `Slot ${index + 1}`;
+
+      const number = document.createElement("span");
+      number.className = "slotNumber";
+      number.textContent = index < 9 ? String(index + 1) : "";
+      element.appendChild(number);
+
+      if (item && item.count > 0) {
+        const swatch = document.createElement("span");
+        swatch.className = "slotColor";
+        swatch.style.backgroundColor = item.color;
+        element.appendChild(swatch);
+
+        const count = document.createElement("span");
+        count.className = "slotCount";
+        count.textContent = String(item.count);
+        element.appendChild(count);
+      }
+
+      element.addEventListener("click", () => {
+        if (index < 9) {
+          selectedSlot = index;
+          gamepadInventoryCursor = index;
+          renderInventory();
+        } else if (inventoryOpen && inventory[index]) {
+          [inventory[selectedSlot], inventory[index]] =
+            [inventory[index], inventory[selectedSlot]];
+          renderInventory();
+          syncInventory();
+        }
+      });
+
+      element.addEventListener("dragstart", event => {
+        event.dataTransfer.setData("text/plain", String(index));
+      });
+
+      element.addEventListener("dragover", event => {
+        event.preventDefault();
+      });
+
+      element.addEventListener("drop", event => {
+        event.preventDefault();
+        const from = Number(event.dataTransfer.getData("text/plain"));
+
+        if (
+          !Number.isInteger(from) ||
+          from < 0 ||
+          from >= inventory.length ||
+          from === index
+        ) {
+          return;
+        }
+
+        [inventory[from], inventory[index]] =
+          [inventory[index], inventory[from]];
+
+        renderInventory();
+        syncInventory();
+      });
+
+      return element;
+    }
+
+    function renderInventory() {
+      hotbarElement.replaceChildren();
+      inventoryGrid.replaceChildren();
+
+      for (let i = 0; i < inventory.length; i++) {
+        if (i < 9) hotbarElement.appendChild(makeSlot(i));
+        inventoryGrid.appendChild(makeSlot(i));
+      }
+
+      renderCraftingRecipes();
+    }
+
+    function stopMining(source) {
+      if (source === undefined) {
+        miningSources.clear();
+      } else {
+        miningSources.delete(source);
+      }
+
+      if (miningSources.size === 0) {
+        miningTargetKey = null;
+        miningStartedAt = 0;
+        mineProgressElement.style.display = "none";
+        mineProgressElement.style.setProperty("--progress", "0deg");
+      }
+    }
+
+    function setInventoryOpen(open) {
+      inventoryOpen = Boolean(open);
+      inventoryPanel.classList.toggle("open", inventoryOpen);
+
+      for (const code of Object.keys(keys)) keys[code] = false;
+      jumpRequested = false;
+
+      if (inventoryOpen) {
+        stopMining();
+        if (document.pointerLockElement === canvas) {
+          document.exitPointerLock?.();
+        }
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // WebSocket persistence
+    // ---------------------------------------------------------------------
+    const requestedRoom =
+      new URLSearchParams(window.location.search).get("room") || "lobby";
+    const roomName = /^[a-zA-Z0-9_-]{1,48}$/.test(requestedRoom)
+      ? requestedRoom
+      : "lobby";
+
+    const websocketScheme =
+      window.location.protocol === "https:" ? "wss:" : "ws:";
+    const socketUrl =
+      `${websocketScheme}//${window.location.host}/ws/world/${roomName}/`;
+
+    function sendPlayerPosition() {
+      if (
+        !hasLoadedServerState ||
+        !worldSocket ||
+        worldSocket.readyState !== WebSocket.OPEN
+      ) {
+        return;
+      }
+
+      worldSocket.send(JSON.stringify({
+        type: "position",
+        position: {
+          x: camera.pos[0],
+          y: camera.pos[1],
+          z: camera.pos[2],
+          yaw: camera.rot[1],
+          pitch: camera.rot[0]
+        }
+      }));
+    }
+
+    function syncPlayerPosition(now) {
+      if (
+        !hasLoadedServerState ||
+        now - lastNetworkUpdate < 50 ||
+        !worldSocket ||
+        worldSocket.readyState !== WebSocket.OPEN
+      ) {
+        return;
+      }
+
+      lastNetworkUpdate = now;
+      sendPlayerPosition();
+    }
+
+    function applyServerInventory(savedInventory) {
+      if (!Array.isArray(savedInventory) || savedInventory.length !== 27) {
+        return;
+      }
+
+      for (let i = 0; i < inventory.length; i++) {
+        const item = savedInventory[i];
+
+        if (
+          item &&
+          typeof item.color === "string" &&
+          /^#[0-9a-fA-F]{6}$/.test(item.color) &&
+          Number.isInteger(item.count) &&
+          item.count > 0 &&
+          item.count <= 64
+        ) {
+          const type =
+            typeof item.type === "string"
+              ? item.type
+              : itemTypeFromColor(item.color);
+
+          inventory[i] = {
+            type,
+            color: item.color.toLowerCase(),
+            count: item.count
+          };
+        } else {
+          inventory[i] = null;
+        }
+      }
+
+      renderInventory();
+    }
+
+    function applyServerEdits(edits) {
+      if (!Array.isArray(edits)) return;
+
+      blockEdits.clear();
+
+      for (const edit of edits) {
+        if (
+          !edit ||
+          !Number.isInteger(edit.x) ||
+          !Number.isInteger(edit.y) ||
+          !Number.isInteger(edit.z)
+        ) {
+          continue;
+        }
+
+        const key = blockKey(edit.x, edit.y, edit.z);
+
+        if (edit.color === null) {
+          blockEdits.set(key, null);
+        } else if (
+          typeof edit.color === "string" &&
+          /^#[0-9a-fA-F]{6}$/.test(edit.color)
+        ) {
+          const color = edit.color.toLowerCase();
+          blockEdits.set(key, {
+            x: edit.x,
+            y: edit.y,
+            z: edit.z,
+            color,
+            type: worldBlockTypeFromColor(color)
+          });
+        }
+      }
+    }
+
+    function sendWorldEdit(x, y, z, color) {
+      const key = blockKey(x, y, z);
+      const edit = { x, y, z, color };
+
+      if (
+        !hasLoadedServerState ||
+        !worldSocket ||
+        worldSocket.readyState !== WebSocket.OPEN
+      ) {
+        pendingWorldEdits.set(key, edit);
+        return;
+      }
+
+      worldSocket.send(JSON.stringify({
+        type: "world_edit",
+        x,
+        y,
+        z,
+        color
+      }));
+    }
+
+    function flushPendingWorldEdits() {
+      if (
+        !hasLoadedServerState ||
+        !worldSocket ||
+        worldSocket.readyState !== WebSocket.OPEN
+      ) {
+        return;
+      }
+
+      for (const [key, edit] of pendingWorldEdits) {
+        blockEdits.set(
+          key,
+          edit.color === null
+            ? null
+            : {
+                x: edit.x,
+                y: edit.y,
+                z: edit.z,
+                color: edit.color,
+                type: itemTypeFromColor(edit.color)
+              }
+        );
+
+        worldSocket.send(JSON.stringify({
+          type: "world_edit",
+          x: edit.x,
+          y: edit.y,
+          z: edit.z,
+          color: edit.color
+        }));
+
+        pendingWorldEdits.delete(key);
+      }
+    }
+
+    function removeBlock(x, y, z) {
+      const key = blockKey(x, y, z);
+      blockEdits.set(key, null);
+      placedBlocks.delete(key);
+      sendWorldEdit(x, y, z, null);
+    }
+
+    function applyWelcome(message) {
+      localPlayerId = message.player_id;
+      remotePlayers.clear();
+
+      for (const player of message.players || []) {
+        if (player.id !== localPlayerId && player.position) {
+          remotePlayers.set(player.id, player.position);
+        }
+      }
+
+      const saved = message.position;
+
+      if (
+        saved &&
+        Number.isFinite(saved.x) &&
+        Number.isFinite(saved.y) &&
+        Number.isFinite(saved.z)
+      ) {
+        camera.pos = [saved.x, saved.y, saved.z];
+        camera.rot = [
+          Number.isFinite(saved.pitch) ? saved.pitch : 0,
+          Number.isFinite(saved.yaw) ? saved.yaw : 0
+        ];
+        camera.velocityY = 0;
+        camera.grounded = false;
+      }
+
+      if (!inventoryDirty) {
+        applyServerInventory(message.inventory);
+      }
+
+      applyServerEdits(message.edits);
+      hasLoadedServerState = true;
+      lastNetworkUpdate = performance.now();
+
+      // Apply queued local edits over the welcome snapshot.
+      for (const [key, edit] of pendingWorldEdits) {
+        blockEdits.set(
+          key,
+          edit.color === null
+            ? null
+            : {
+                x: edit.x,
+                y: edit.y,
+                z: edit.z,
+                color: edit.color,
+                type: itemTypeFromColor(edit.color)
+              }
+        );
+      }
+
+      flushPendingWorldEdits();
+
+      if (inventoryDirty) {
+        worldSocket.send(JSON.stringify({
+          type: "inventory",
+          inventory: inventoryPayload()
+        }));
+      }
+
+      sendPlayerPosition();
+    }
+
+    function connectWorldSocket() {
+      worldSocket = new WebSocket(socketUrl);
+
+      worldSocket.addEventListener("message", event => {
+        let message;
+
+        try {
+          message = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+
+        if (message.type === "welcome") {
+          applyWelcome(message);
+          return;
+        }
+
+        if (message.type === "inventory_saved") {
+          inventoryDirty = false;
+          return;
+        }
+
+        if (message.type === "player_state") {
+          if (message.player_id !== localPlayerId && message.position) {
+            remotePlayers.set(message.player_id, message.position);
+          }
+          return;
+        }
+
+        if (message.type === "player_left") {
+          remotePlayers.delete(message.player_id);
+          return;
+        }
+
+        if (message.type === "world_edit" && message.edit) {
+          const edit = message.edit;
+
+          if (
+            !Number.isInteger(edit.x) ||
+            !Number.isInteger(edit.y) ||
+            !Number.isInteger(edit.z)
+          ) {
+            return;
+          }
+
+          const key = blockKey(edit.x, edit.y, edit.z);
+
+          if (edit.color === null) {
+            blockEdits.set(key, null);
+            placedBlocks.delete(key);
+          } else if (
+            typeof edit.color === "string" &&
+            /^#[0-9a-fA-F]{6}$/.test(edit.color)
+          ) {
+            const color = edit.color.toLowerCase();
+            blockEdits.set(key, {
+              x: edit.x,
+              y: edit.y,
+              z: edit.z,
+              color,
+              type: worldBlockTypeFromColor(color)
+            });
+          }
+        }
+      });
+
+      worldSocket.addEventListener("close", () => {
+        hasLoadedServerState = false;
+        stopMining();
+        window.setTimeout(connectWorldSocket, 2000);
+      });
+
+      worldSocket.addEventListener("error", () => {
+        worldSocket.close();
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // Voxel-grid raycast from the center crosshair
+    // ---------------------------------------------------------------------
+    function raycast(maxDistance = 7) {
+      const pitch = camera.rot[0];
+      const yaw = camera.rot[1];
+
+      const direction = [
+        Math.sin(yaw) * Math.cos(pitch),
+        Math.sin(pitch),
+        Math.cos(yaw) * Math.cos(pitch)
+      ];
+
+      const origin = [
+        camera.pos[0],
+        camera.pos[1] + EYE_HEIGHT,
+        camera.pos[2]
+      ];
+
+      const cell = origin.map(Math.floor);
+      let previous = null;
+
+      const stepX = Math.sign(direction[0]);
+      const stepY = Math.sign(direction[1]);
+      const stepZ = Math.sign(direction[2]);
+
+      const deltaX = direction[0] === 0
+        ? Infinity
+        : Math.abs(1 / direction[0]);
+      const deltaY = direction[1] === 0
+        ? Infinity
+        : Math.abs(1 / direction[1]);
+      const deltaZ = direction[2] === 0
+        ? Infinity
+        : Math.abs(1 / direction[2]);
+
+      let maxX = direction[0] > 0
+        ? (cell[0] + 1 - origin[0]) / direction[0]
+        : direction[0] < 0
+          ? (origin[0] - cell[0]) / -direction[0]
+          : Infinity;
+
+      let maxY = direction[1] > 0
+        ? (cell[1] + 1 - origin[1]) / direction[1]
+        : direction[1] < 0
+          ? (origin[1] - cell[1]) / -direction[1]
+          : Infinity;
+
+      let maxZ = direction[2] > 0
+        ? (cell[2] + 1 - origin[2]) / direction[2]
+        : direction[2] < 0
+          ? (origin[2] - cell[2]) / -direction[2]
+          : Infinity;
+
+      let distance = 0;
+
+      while (distance <= maxDistance) {
+        const block = getBlock(cell[0], cell[1], cell[2]);
+        if (block && (isSolid(cell[0], cell[1], cell[2]) || isDoorBlock(block))) {
+          return { hit: [...cell], previous };
+        }
+
+        previous = [...cell];
+
+        const nextBoundary = Math.min(maxX, maxY, maxZ);
+        if (!Number.isFinite(nextBoundary) || nextBoundary > maxDistance) {
+          break;
+        }
+
+        const epsilon = 1e-10;
+
+        if (maxX <= nextBoundary + epsilon) {
+          cell[0] += stepX;
+          maxX += deltaX;
+        }
+
+        if (maxY <= nextBoundary + epsilon) {
+          cell[1] += stepY;
+          maxY += deltaY;
+        }
+
+        if (maxZ <= nextBoundary + epsilon) {
+          cell[2] += stepZ;
+          maxZ += deltaZ;
+        }
+
+        distance = nextBoundary;
+      }
+
+      return null;
+    }
+    function toggleTargetedDoor() {
+      const result = raycast();
+      if (!result) return false;
+
+      const [x, hitY, z] = result.hit;
+      const hitBlock = getBlock(x, hitY, z);
+      if (!isDoorBlock(hitBlock)) return false;
+
+      const isTop = hitBlock.type.startsWith("door_top_");
+      const bottomY = isTop ? hitY - 1 : hitY;
+      const bottom = getBlock(x, bottomY, z);
+      const top = getBlock(x, bottomY + 1, z);
+
+      if (!isDoorBlock(bottom) || !isDoorBlock(top)) return false;
+
+      const open = !isOpenDoorBlock(bottom);
+      const bottomType = open ? "door_bottom_open" : "door_bottom_closed";
+      const topType = open ? "door_top_open" : "door_top_closed";
+
+      writeWorldBlock(
+        x, bottomY, z,
+        DOOR_BLOCK_COLORS[bottomType],
+        bottomType
+      );
+      writeWorldBlock(
+        x, bottomY + 1, z,
+        DOOR_BLOCK_COLORS[topType],
+        topType
+      );
+
+      return true;
+    }
+
+    // ---------------------------------------------------------------------
+    // Mining and placement
+    // ---------------------------------------------------------------------
+    function startMining(source) {
+      if (inventoryOpen) return;
+
+      const wasIdle = miningSources.size === 0;
+      miningSources.add(source);
+
+      if (wasIdle) {
+        miningTargetKey = null;
+        miningStartedAt = 0;
+      }
+    }
+
+    function stopMining(source) {
+      if (source === undefined) {
+        miningSources.clear();
+      } else {
+        miningSources.delete(source);
+      }
+
+      if (miningSources.size === 0) {
+        miningTargetKey = null;
+        miningStartedAt = 0;
+        mineProgressElement.style.display = "none";
+        mineProgressElement.style.setProperty("--progress", "0deg");
+      }
+    }
+
+    function updateMining(now) {
+      if (inventoryOpen || miningSources.size === 0) {
+        mineProgressElement.style.display = "none";
+        return;
+      }
+
+      const result = raycast();
+
+      if (!result) {
+        miningTargetKey = null;
+        miningStartedAt = 0;
+        mineProgressElement.style.display = "none";
+        return;
+      }
+
+      const [x, y, z] = result.hit;
+      const key = blockKey(x, y, z);
+
+      if (key !== miningTargetKey) {
+        miningTargetKey = key;
+        miningStartedAt = now;
+      }
+
+      const progress = Math.min(
+        1,
+        (now - miningStartedAt) / MINE_DURATION_MS
+      );
+
+      mineProgressElement.style.display = "block";
+      mineProgressElement.style.setProperty(
+        "--progress",
+        `${progress * 360}deg`
+      );
+
+      if (progress < 1) return;
+
+      const block = getBlock(x, y, z);
+
+      if (
+        !block ||
+        !addToInventory(
+          block.color,
+          block.type || itemTypeFromColor(block.color)
+        )
+      ) {
+        stopMining();
+        return;
+      }
+
+      removeBlock(x, y, z);
+      miningTargetKey = null;
+      miningStartedAt = now;
+    }
+
+    function placeBlock() {
+      if (inventoryOpen) return;
+
+      const now = performance.now();
+      if (now - lastSuccessfulPlacementAt < PLACE_COOLDOWN_MS) return;
+
+      const item = inventory[selectedSlot];
+      if (!item || item.count <= 0) return;
+
+      const result = raycast();
+      if (!result || !result.previous) return;
+
+      const [x, y, z] = result.previous;
+      if (isSolid(x, y, z)) return;
+
+      const overlapsPlayer =
+        camera.pos[0] + PLAYER_HALF_WIDTH > x &&
+        camera.pos[0] - PLAYER_HALF_WIDTH < x + 1 &&
+        camera.pos[1] + PLAYER_HEIGHT > y &&
+        camera.pos[1] < y + 1 &&
+        camera.pos[2] + PLAYER_HALF_WIDTH > z &&
+        camera.pos[2] - PLAYER_HALF_WIDTH < z + 1;
+
+      if (overlapsPlayer) return;
+
+      const type = item.type || itemTypeFromColor(item.color);
+      const placed = { x, y, z, color: item.color, type };
+      blockEdits.set(blockKey(x, y, z), placed);
+      sendWorldEdit(x, y, z, item.color);
+
+      item.count--;
+      if (item.count <= 0) inventory[selectedSlot] = null;
+
+      lastSuccessfulPlacementAt = now;
+      renderInventory();
+      syncInventory();
+    }
+    function playerOverlapsCell(x, y, z) {
+      return (
+        camera.pos[0] + PLAYER_HALF_WIDTH > x &&
+        camera.pos[0] - PLAYER_HALF_WIDTH < x + 1 &&
+        camera.pos[1] + PLAYER_HEIGHT > y &&
+        camera.pos[1] < y + 1 &&
+        camera.pos[2] + PLAYER_HALF_WIDTH > z &&
+        camera.pos[2] - PLAYER_HALF_WIDTH < z + 1
+      );
+    }
+
+    function writeWorldBlock(x, y, z, color, type) {
+      const block = { x, y, z, color, type };
+      blockEdits.set(blockKey(x, y, z), block);
+      sendWorldEdit(x, y, z, color);
+    }
+
+    function placeBlock() {
+      if (inventoryOpen) return;
+
+      const now = performance.now();
+      if (now - lastSuccessfulPlacementAt < PLACE_COOLDOWN_MS) return;
+
+      const item = inventory[selectedSlot];
+      if (!item || item.count <= 0) return;
+
+      const itemType = item.type || itemTypeFromColor(item.color);
+      const result = raycast();
+      if (!result?.previous) return;
+
+      const [x, y, z] = result.previous;
+
+      if (itemType === "door") {
+        // The door bottom must sit on a block, and its two cells must be empty.
+        if (!isSolid(x, y - 1, z)) return;
+        if (isSolid(x, y, z) || isSolid(x, y + 1, z)) return;
+        if (playerOverlapsCell(x, y, z) || playerOverlapsCell(x, y + 1, z)) {
+          return;
+        }
+
+        writeWorldBlock(
+          x, y, z,
+          DOOR_BLOCK_COLORS.door_bottom_closed,
+          "door_bottom_closed"
+        );
+        writeWorldBlock(
+          x, y + 1, z,
+          DOOR_BLOCK_COLORS.door_top_closed,
+          "door_top_closed"
+        );
+      } else {
+        if (isSolid(x, y, z) || playerOverlapsCell(x, y, z)) return;
+
+        writeWorldBlock(x, y, z, item.color, itemType);
+      }
+
+      item.count--;
+      if (item.count <= 0) inventory[selectedSlot] = null;
+
+      lastSuccessfulPlacementAt = now;
+      renderInventory();
+      syncInventory();
+    }
+    // ---------------------------------------------------------------------
+    // Collision and physics
+    // ---------------------------------------------------------------------
+    function playerOverlapsBlock(x, feetY, z, block) {
+      return (
+        x + PLAYER_HALF_WIDTH > block.x &&
+        x - PLAYER_HALF_WIDTH < block.x + 1 &&
+        z + PLAYER_HALF_WIDTH > block.z &&
+        z - PLAYER_HALF_WIDTH < block.z + 1 &&
+        feetY + PLAYER_HEIGHT > block.y &&
+        feetY < block.y + 1
+      );
+    }
+
+    function findOverlappingBlock(x, feetY, z) {
+      const minX = Math.floor(x - PLAYER_HALF_WIDTH);
+      const maxX = Math.floor(x + PLAYER_HALF_WIDTH);
+      const minZ = Math.floor(z - PLAYER_HALF_WIDTH);
+      const maxZ = Math.floor(z + PLAYER_HALF_WIDTH);
+      const minY = Math.floor(feetY + 0.001);
+      const maxY = Math.floor(feetY + PLAYER_HEIGHT - 0.001);
+
+      for (let bx = minX; bx <= maxX; bx++) {
+        for (let by = minY; by <= maxY; by++) {
+          for (let bz = minZ; bz <= maxZ; bz++) {
+            const block = getBlock(bx, by, bz);
+            if (
+              block &&
+              isSolid(bx, by, bz) &&
+              playerOverlapsBlock(x, feetY, z, block)
+            ) {
+              return block;
+            }
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function columnSupportHeight(x, z, feetY) {
+      const bx = Math.floor(x);
+      const bz = Math.floor(z);
+
+      // Search down from the feet. Overhead leaves/canopy are not floor support.
+      const scanTop = Math.floor(feetY + 1e-9);
+
+      for (let y = scanTop; y >= WORLD_MIN_Y; y--) {
+        if (isSolid(bx, y, bz)) return y + 1;
+      }
+
+      return WORLD_MIN_Y;
+    }
+
+    function playerSupportHeight(x, z, feetY) {
+      const inset = 0.02;
+      const samples = [
+        [x, z],
+        [x - PLAYER_HALF_WIDTH + inset, z - PLAYER_HALF_WIDTH + inset],
+        [x + PLAYER_HALF_WIDTH - inset, z - PLAYER_HALF_WIDTH + inset],
+        [x - PLAYER_HALF_WIDTH + inset, z + PLAYER_HALF_WIDTH - inset],
+        [x + PLAYER_HALF_WIDTH - inset, z + PLAYER_HALF_WIDTH - inset]
+      ];
+
+      let support = WORLD_MIN_Y;
+
+      for (const [sampleX, sampleZ] of samples) {
+        support = Math.max(
+          support,
+          columnSupportHeight(sampleX, sampleZ, feetY)
+        );
+      }
+
+      return support;
+    }
+
+    function tryHorizontalMove(dx, dz) {
+      const nextX = camera.pos[0] + dx;
+      const nextZ = camera.pos[2] + dz;
+      const support = playerSupportHeight(nextX, nextZ, camera.pos[1]);
+      let nextY = camera.pos[1];
+
+      if (camera.grounded) {
+        const rise = support - camera.pos[1];
+
+        // Permit one-block steps with only a floating-point tolerance.
+        if (rise > MAX_STEP_HEIGHT + 1e-9) return;
+
+        if (rise > 0.001) {
+          nextY = support;
+        } else if (rise < -0.001) {
+          camera.grounded = false;
+        } else {
+          nextY = support;
+        }
+      }
+
+      if (findOverlappingBlock(nextX, nextY, nextZ)) return;
+
+      camera.pos[0] = nextX;
+      camera.pos[1] = nextY;
+      camera.pos[2] = nextZ;
+    }
+
+    function updatePhysics(dt) {
+      if (inventoryOpen) return;
+
+      let forward = 0;
+      let sideways = 0;
+
+      if (keys.KeyW || keys.ArrowUp) forward++;
+      if (keys.KeyS || keys.ArrowDown) forward--;
+      if (keys.KeyD) sideways++;
+      if (keys.KeyA) sideways--;
+
+      forward += -gamepadMoveY - touchMoveY;
+      sideways += gamepadMoveX + touchMoveX;
+
+      const inputLength = Math.hypot(forward, sideways);
+
+      if (inputLength > 0) {
+        const divisor = Math.max(1, inputLength);
+        forward /= divisor;
+        sideways /= divisor;
+
+        const yaw = camera.rot[1];
+        const distance = MOVE_SPEED * dt;
+
+        const dx = (
+          Math.sin(yaw) * forward +
+          Math.cos(yaw) * sideways
+        ) * distance;
+
+        const dz = (
+          Math.cos(yaw) * forward -
+          Math.sin(yaw) * sideways
+        ) * distance;
+
+        tryHorizontalMove(dx, 0);
+        tryHorizontalMove(0, dz);
+      }
+
+      if (jumpRequested && camera.grounded) {
+        camera.velocityY = JUMP_SPEED;
+        camera.grounded = false;
+      }
+      jumpRequested = false;
+
+      const previousFeet = camera.pos[1];
+      camera.velocityY -= GRAVITY * dt;
+      camera.pos[1] += camera.velocityY * dt;
+      camera.grounded = false;
+
+      const support = playerSupportHeight(
+        camera.pos[0],
+        camera.pos[2],
+        camera.pos[1]
+      );
+
+      if (camera.velocityY <= 0 && camera.pos[1] <= support) {
+        camera.pos[1] = support;
+        camera.velocityY = 0;
+        camera.grounded = true;
+      }
+
+      // Ceiling collision uses the same 1.7-block player height.
+      const minX = Math.floor(camera.pos[0] - PLAYER_HALF_WIDTH);
+      const maxX = Math.floor(camera.pos[0] + PLAYER_HALF_WIDTH);
+      const minZ = Math.floor(camera.pos[2] - PLAYER_HALF_WIDTH);
+      const maxZ = Math.floor(camera.pos[2] + PLAYER_HALF_WIDTH);
+      const minY = Math.floor(camera.pos[1] - 1);
+      const maxY = Math.floor(camera.pos[1] + PLAYER_HEIGHT + 1);
+
+      for (let x = minX; x <= maxX; x++) {
+        for (let z = minZ; z <= maxZ; z++) {
+          for (let y = minY; y <= maxY; y++) {
+            const block = getBlock(x, y, z);
+            if (!block) continue;
+
+            const horizontalOverlap =
+              camera.pos[0] + PLAYER_HALF_WIDTH > block.x &&
+              camera.pos[0] - PLAYER_HALF_WIDTH < block.x + 1 &&
+              camera.pos[2] + PLAYER_HALF_WIDTH > block.z &&
+              camera.pos[2] - PLAYER_HALF_WIDTH < block.z + 1;
+
+            if (!horizontalOverlap) continue;
+
+            const previousHead = previousFeet + PLAYER_HEIGHT;
+            const currentHead = camera.pos[1] + PLAYER_HEIGHT;
+
+            if (
+              camera.velocityY > 0 &&
+              previousHead <= block.y + 0.02 &&
+              currentHead > block.y
+            ) {
+              camera.pos[1] = block.y - PLAYER_HEIGHT;
+              camera.velocityY = 0;
+            }
+          }
+        }
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // Software 3D renderer
+    // ---------------------------------------------------------------------
+    const CUBE_VERTICES = [
+      [-0.5, -0.5, -0.5], [0.5, -0.5, -0.5],
+      [0.5, 0.5, -0.5], [-0.5, 0.5, -0.5],
+      [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5],
+      [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5]
+    ];
+
+    const CUBE_FACES = [
+      { ids: [0, 1, 2, 3], neighbor: [0, 0, -1], shade: 0.78 },
+      { ids: [4, 5, 6, 7], neighbor: [0, 0, 1], shade: 1.00 },
+      { ids: [0, 1, 5, 4], neighbor: [0, -1, 0], shade: 0.62 },
+      { ids: [2, 3, 7, 6], neighbor: [0, 1, 0], shade: 1.12 },
+      { ids: [0, 3, 7, 4], neighbor: [-1, 0, 0], shade: 0.86 },
+      { ids: [1, 2, 6, 5], neighbor: [1, 0, 0], shade: 0.72 }
+    ];
+
+    function shadeColor(hex, amount) {
+      const value = hex.replace("#", "");
+      const red = parseInt(value.slice(0, 2), 16);
+      const green = parseInt(value.slice(2, 4), 16);
+      const blue = parseInt(value.slice(4, 6), 16);
+      const shade = channel =>
+        Math.max(0, Math.min(255, Math.round(channel * amount)));
+
+      return `rgb(${shade(red)},${shade(green)},${shade(blue)})`;
+    }
+
+    function worldToCamera(point) {
+      let x = point[0] - camera.pos[0];
+      let y = point[1] - (camera.pos[1] + EYE_HEIGHT);
+      let z = point[2] - camera.pos[2];
+
+      [x, z] = rotate2d([x, z], camera.rot[1]);
+      [y, z] = rotate2d([y, z], camera.rot[0]);
+      return [x, y, z];
+    }
+
+    function clipNear(polygon, near = 0.1) {
+      const result = [];
+
+      for (let i = 0; i < polygon.length; i++) {
+        const current = polygon[i];
+        const previous = polygon[(i + polygon.length - 1) % polygon.length];
+        const currentInside = current[2] >= near;
+        const previousInside = previous[2] >= near;
+
+        if (currentInside !== previousInside) {
+          const denominator = current[2] - previous[2];
+
+          if (Math.abs(denominator) > 1e-12) {
+            const t = (near - previous[2]) / denominator;
+            result.push([
+              previous[0] + (current[0] - previous[0]) * t,
+              previous[1] + (current[1] - previous[1]) * t,
+              near
+            ]);
+          }
+        }
+
+        if (currentInside) result.push(current);
+      }
+
+      return result;
+    }
+
+    function project(point) {
+      const focalLength = Math.max(
+        1,
+        Math.min(screenWidth, screenHeight) * 0.55
+      );
+      const scale = focalLength / point[2];
+
+      return [
+        centerX + point[0] * scale,
+        centerY - point[1] * scale
+      ];
+    }
+
+    function clipScreenPolygon(points) {
+      let polygon = points;
+
+      const edges = [
+        {
+          inside: point => point[0] >= 0,
+          intersect: (a, b) => {
+            const denominator = b[0] - a[0];
+            if (Math.abs(denominator) < 1e-12) return null;
+            const t = -a[0] / denominator;
+            return [0, a[1] + (b[1] - a[1]) * t];
+          }
+        },
+        {
+          inside: point => point[0] <= screenWidth,
+          intersect: (a, b) => {
+            const denominator = b[0] - a[0];
+            if (Math.abs(denominator) < 1e-12) return null;
+            const t = (screenWidth - a[0]) / denominator;
+            return [screenWidth, a[1] + (b[1] - a[1]) * t];
+          }
+        },
+        {
+          inside: point => point[1] >= 0,
+          intersect: (a, b) => {
+            const denominator = b[1] - a[1];
+            if (Math.abs(denominator) < 1e-12) return null;
+            const t = -a[1] / denominator;
+            return [a[0] + (b[0] - a[0]) * t, 0];
+          }
+        },
+        {
+          inside: point => point[1] <= screenHeight,
+          intersect: (a, b) => {
+            const denominator = b[1] - a[1];
+            if (Math.abs(denominator) < 1e-12) return null;
+            const t = (screenHeight - a[1]) / denominator;
+            return [
+              a[0] + (b[0] - a[0]) * t,
+              screenHeight
+            ];
+          }
+        }
+      ];
+
+      for (const edge of edges) {
+        if (polygon.length === 0) break;
+
+        const input = polygon;
+        polygon = [];
+
+        for (let i = 0; i < input.length; i++) {
+          const current = input[i];
+          const previous = input[(i + input.length - 1) % input.length];
+          const currentInside = edge.inside(current);
+          const previousInside = edge.inside(previous);
+
+          if (currentInside !== previousInside) {
+            const intersection = edge.intersect(previous, current);
+
+            if (
+              intersection &&
+              Number.isFinite(intersection[0]) &&
+              Number.isFinite(intersection[1])
+            ) {
+              polygon.push(intersection);
+            }
+          }
+
+          if (currentInside) polygon.push(current);
+        }
+      }
+
+      return polygon;
+    }
+
+    function faceFacesCamera(center, normal, halfExtents = [0.5, 0.5, 0.5]) {
+      const faceCenter = [
+        center[0] + normal[0] * halfExtents[0],
+        center[1] + normal[1] * halfExtents[1],
+        center[2] + normal[2] * halfExtents[2]
+      ];
+
+      const toCamera = [
+        camera.pos[0] - faceCenter[0],
+        camera.pos[1] + EYE_HEIGHT - faceCenter[1],
+        camera.pos[2] - faceCenter[2]
+      ];
+
+      return (
+        normal[0] * toCamera[0] +
+        normal[1] * toCamera[1] +
+        normal[2] * toCamera[2]
+      ) > 0;
+    }
+
+    function addCubeFaces(faces, block) {
+      if (isDoorBlock(block)) {
+        addDoorPanelFaces(faces, block);
+        return;
+      }
+
+      const center = [
+        block.x + 0.5,
+        block.y + 0.5,
+        block.z + 0.5
+      ];
+
+      const vertices = CUBE_VERTICES.map(([x, y, z]) =>
+        worldToCamera([
+          center[0] + x,
+          center[1] + y,
+          center[2] + z
+        ])
+      );
+
+      for (const face of CUBE_FACES) {
+        const [nx, ny, nz] = face.neighbor;
+
+        if (!faceFacesCamera(center, [nx, ny, nz])) continue;
+        if (isSolid(block.x + nx, block.y + ny, block.z + nz)) continue;
+
+        const polygon = clipNear(face.ids.map(index => vertices[index]));
+        if (polygon.length < 3) continue;
+
+        const depth = polygon.reduce(
+          (sum, vertex) => sum + vertex[2],
+          0
+        ) / polygon.length;
+
+        faces.push({
+          depth,
+          points: polygon,
+          color: shadeColor(block.color, face.shade)
+        });
+      }
+    }
+
+    function addRemoteAvatarFaces(faces, position, color) {
+      if (
+        !position ||
+        !Number.isFinite(position.x) ||
+        !Number.isFinite(position.y) ||
+        !Number.isFinite(position.z)
+      ) {
+        return;
+      }
+
+      const parts = [
+        {
+          center: [position.x, position.y + 0.85, position.z],
+          scale: [0.65, 0.85, 0.4],
+          color
+        },
+        {
+          center: [position.x, position.y + 1.5, position.z],
+          scale: [0.42, 0.42, 0.42],
+          color: "#e4bd96"
+        }
+      ];
+
+      for (const part of parts) {
+        const halfExtents = part.scale.map(value => value / 2);
+        const vertices = CUBE_VERTICES.map(([x, y, z]) =>
+          worldToCamera([
+            part.center[0] + x * part.scale[0],
+            part.center[1] + y * part.scale[1],
+            part.center[2] + z * part.scale[2]
+          ])
+        );
+
+        for (const face of CUBE_FACES) {
+          if (!faceFacesCamera(part.center, face.neighbor, halfExtents)) {
+            continue;
+          }
+
+          const polygon = clipNear(face.ids.map(index => vertices[index]));
+          if (polygon.length < 3) continue;
+
+          const depth = polygon.reduce(
+            (sum, vertex) => sum + vertex[2],
+            0
+          ) / polygon.length;
+
+          faces.push({
+            depth,
+            points: polygon,
+            color: shadeColor(part.color, face.shade)
+          });
+        }
+      }
+    }
+
+    function playerColor(playerId) {
+      const colors = [
+        "#e05252", "#4a86df", "#55ad68",
+        "#d19b39", "#a66bd1", "#38aaa2"
+      ];
+
+      let hash = 0;
+      for (const char of playerId) {
+        hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
+      }
+
+      return colors[(hash >>> 0) % colors.length];
+    }
+    function addDoorPanelFaces(faces, block) {
+      const isOpen = isOpenDoorBlock(block);
+      const width = 0.88;
+      const thickness = 0.08;
+      const hingeX = block.x + 0.06;
+      const hingeZ = block.z + 0.5;
+
+      // Closed: panel spans the cell along +X.
+      // Open: panel rotates 90 degrees around the hinge and extends along +Z.
+      const axis = isOpen
+        ? { x: 0, z: 1 }
+        : { x: 1, z: 0 };
+
+      const normal = isOpen
+        ? { x: -1, z: 0 }
+        : { x: 0, z: 1 };
+
+      const bottomY = block.y + 0.01;
+      const topY = block.y + 0.99;
+
+      const worldVertices = CUBE_VERTICES.map(([localX, localY, localZ]) => {
+        const alongPanel = (localX + 0.5) * width;
+        const throughPanel = localZ * thickness;
+
+        return [
+          hingeX + axis.x * alongPanel + normal.x * throughPanel,
+          localY < 0 ? bottomY : topY,
+          hingeZ + axis.z * alongPanel + normal.z * throughPanel
+        ];
+      });
+
+      const cameraVertices = worldVertices.map(worldToCamera);
+
+      for (const face of CUBE_FACES) {
+        const [localNormalX, localNormalY, localNormalZ] = face.neighbor;
+
+        // Transform the face normal from panel-local axes to world axes.
+        const worldNormal = [
+          axis.x * localNormalX + normal.x * localNormalZ,
+          localNormalY,
+          axis.z * localNormalX + normal.z * localNormalZ
+        ];
+
+        const faceVertices = face.ids.map(index => worldVertices[index]);
+        const faceCenter = [0, 0, 0];
+
+        for (const vertex of faceVertices) {
+          faceCenter[0] += vertex[0] / faceVertices.length;
+          faceCenter[1] += vertex[1] / faceVertices.length;
+          faceCenter[2] += vertex[2] / faceVertices.length;
+        }
+
+        const toCamera = [
+          camera.pos[0] - faceCenter[0],
+          camera.pos[1] + EYE_HEIGHT - faceCenter[1],
+          camera.pos[2] - faceCenter[2]
+        ];
+
+        const facesCamera =
+          worldNormal[0] * toCamera[0] +
+          worldNormal[1] * toCamera[1] +
+          worldNormal[2] * toCamera[2] > 0;
+
+        if (!facesCamera) continue;
+
+        const polygon = clipNear(face.ids.map(index => cameraVertices[index]));
+        if (polygon.length < 3) continue;
+
+        const depth = polygon.reduce(
+          (sum, vertex) => sum + vertex[2],
+          0
+        ) / polygon.length;
+
+        faces.push({
+          depth,
+          points: polygon,
+          color: shadeColor(block.color, face.shade)
+        });
+      }
+    }
+    function render() {
+      ctx.fillStyle = "#dce8f2";
+      ctx.fillRect(0, 0, screenWidth, screenHeight);
+
+      const faces = [];
+      const startX = Math.floor(camera.pos[0]) - RENDER_RADIUS;
+      const endX = Math.floor(camera.pos[0]) + RENDER_RADIUS;
+      const startZ = Math.floor(camera.pos[2]) - RENDER_RADIUS;
+      const endZ = Math.floor(camera.pos[2]) + RENDER_RADIUS;
+
+      for (let x = startX; x <= endX; x++) {
+        for (let z = startZ; z <= endZ; z++) {
+          const top = terrainHeight(x, z);
+
+          for (let y = WORLD_MIN_Y; y < top + 7; y++) {
+            const block = getBlock(x, y, z);
+            if (block) addCubeFaces(faces, block);
+          }
+        }
+      }
+
+      for (const [key, block] of placedBlocks) {
+        if (blockEdits.has(key)) continue;
+
+        if (
+          block.x >= startX - 1 && block.x <= endX &&
+          block.z >= startZ - 1 && block.z <= endZ &&
+          block.y >= terrainHeight(block.x, block.z) + 7
+        ) {
+          addCubeFaces(faces, block);
+        }
+      }
+
+      for (const [key, block] of blockEdits) {
+        if (!block || placedBlocks.has(key)) continue;
+
+        if (
+          block.x >= startX - 1 && block.x <= endX &&
+          block.z >= startZ - 1 && block.z <= endZ &&
+          block.y >= terrainHeight(block.x, block.z) + 7
+        ) {
+          addCubeFaces(faces, block);
+        }
+      }
+
+      for (const [playerId, position] of remotePlayers) {
+        addRemoteAvatarFaces(faces, position, playerColor(playerId));
+      }
+
+      faces.sort((a, b) => b.depth - a.depth);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, screenWidth, screenHeight);
+      ctx.clip();
+
+      for (const face of faces) {
+        const points = clipScreenPolygon(face.points.map(project));
+        if (points.length < 3) continue;
+
+        ctx.beginPath();
+        ctx.moveTo(points[0][0], points[0][1]);
+
+        for (let i = 1; i < points.length; i++) {
+          ctx.lineTo(points[i][0], points[i][1]);
+        }
+
+        ctx.closePath();
+        ctx.fillStyle = face.color;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.12)";
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    // ---------------------------------------------------------------------
+    // Keyboard and desktop controls
+    // ---------------------------------------------------------------------
+    document.addEventListener("keydown", event => {
+
+      if (event.code === "KeyE" && !event.repeat) {
+        event.preventDefault();
+        setInventoryOpen(!inventoryOpen);
+        return;
+      }
+
+      if (event.code === "Escape" && inventoryOpen) {
+        gamepadDragSource = null;
+        setInventoryOpen(false);
+        return;
+      }
+
+      if (/^Digit[1-9]$/.test(event.code)) {
+        selectedSlot = Number(event.code.slice(5)) - 1;
+        gamepadInventoryCursor = selectedSlot;
+        renderInventory();
+      }
+
+      if (inventoryOpen) return;
+
+      keys[event.code] = true;
+
+      if (event.code === "Space" && !event.repeat) {
+        toggleTargetedDoor();
+        jumpRequested = true;
+      }
+
+      if ([
+        "Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"
+      ].includes(event.code)) {
+        event.preventDefault();
+      }
+    }, true);
+
+    document.addEventListener("keyup", event => {
+      keys[event.code] = false;
+    }, true);
+
+    window.addEventListener("blur", () => {
+      for (const code of Object.keys(keys)) keys[code] = false;
+      jumpRequested = false;
+      stopMining();
+    });
+
+    canvas.addEventListener("contextmenu", event => {
+      event.preventDefault();
+    });
+
+    canvas.addEventListener("pointerdown", event => {
+      if (inventoryOpen) return;
+
+      if (event.button === 2) {
+        event.preventDefault();
+        startMining("mouse");
+      } else if (event.button === 0) {
+        event.preventDefault();
+        placeBlock();
+      }
+
+      if (document.pointerLockElement !== canvas) {
+        canvas.requestPointerLock?.();
+      }
+    });
+
+    window.addEventListener("pointerup", event => {
+      if (event.button === 2) stopMining("mouse");
+    });
+
+    window.addEventListener("pointercancel", () => {
+      stopMining("mouse");
+    });
+
+    document.addEventListener("pointerlockchange", () => {
+      canvas.style.cursor =
+        document.pointerLockElement === canvas ? "none" : "default";
+    });
+
+    document.addEventListener("mousemove", event => {
+      if (document.pointerLockElement === canvas && !inventoryOpen) {
+        camera.mouseMove(event.movementX || 0, event.movementY || 0);
+      }
+    });
+
+    // ---------------------------------------------------------------------
+    // Mobile controls
+    // ---------------------------------------------------------------------
+    function bindVirtualJoystick(element, onMove, onRelease) {
+      if (!element) return;
+
+      let activePointerId = null;
+
+      function update(event) {
+        const rect = element.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const maxDistance = rect.width * 0.34;
+
+        let dx = event.clientX - cx;
+        let dy = event.clientY - cy;
+        const distance = Math.hypot(dx, dy);
+
+        if (distance > maxDistance) {
+          const factor = maxDistance / distance;
+          dx *= factor;
+          dy *= factor;
+        }
+
+        const knob = element.querySelector(".touch-stick-knob");
+        knob.style.setProperty("--knob-x", `${dx}px`);
+        knob.style.setProperty("--knob-y", `${dy}px`);
+        onMove(dx / maxDistance, dy / maxDistance);
+      }
+
+      element.addEventListener("pointerdown", event => {
+        event.preventDefault();
+        if (activePointerId !== null) return;
+
+        activePointerId = event.pointerId;
+        element.setPointerCapture(event.pointerId);
+        update(event);
+      });
+
+      element.addEventListener("pointermove", event => {
+        if (event.pointerId !== activePointerId) return;
+        event.preventDefault();
+        update(event);
+      });
+
+      function release(event) {
+        if (event.pointerId !== activePointerId) return;
+
+        activePointerId = null;
+        const knob = element.querySelector(".touch-stick-knob");
+        knob.style.setProperty("--knob-x", "0px");
+        knob.style.setProperty("--knob-y", "0px");
+        onRelease();
+      }
+
+      element.addEventListener("pointerup", release);
+      element.addEventListener("pointercancel", release);
+      element.addEventListener("lostpointercapture", release);
+    }
+
+    bindVirtualJoystick(
+      document.getElementById("moveStick"),
+      (x, y) => {
+        touchMoveX = x;
+        touchMoveY = y;
+      },
+      () => {
+        touchMoveX = 0;
+        touchMoveY = 0;
+      }
+    );
+
+    bindVirtualJoystick(
+      document.getElementById("lookStick"),
+      (x, y) => {
+        touchLookX = x;
+        touchLookY = y;
+      },
+      () => {
+        touchLookX = 0;
+        touchLookY = 0;
+      }
+    );
+
+    function bindTouchAction(button, action) {
+      let activePointerId = null;
+
+      button.addEventListener("pointerdown", event => {
+        event.preventDefault();
+        if (activePointerId !== null) return;
+
+        activePointerId = event.pointerId;
+        button.setPointerCapture(event.pointerId);
+
+        if (action === "jump") {
+          jumpRequested = true;
+        } else if (action === "mine") {
+          startMining("touch");
+        } else if (action === "place") {
+          placeBlock();
+        }
+      });
+
+      function release(event) {
+        if (event.pointerId !== activePointerId) return;
+
+        activePointerId = null;
+        if (action === "mine") stopMining("touch");
+      }
+
+      button.addEventListener("pointerup", release);
+      button.addEventListener("pointercancel", release);
+      button.addEventListener("lostpointercapture", release);
+    }
+
+    document.querySelectorAll("[data-touch-action]").forEach(button => {
+      bindTouchAction(button, button.dataset.touchAction);
+    });
+
+    document.getElementById("bagButton").addEventListener(
+      "pointerdown",
+      event => {
+        event.preventDefault();
+        event.stopPropagation();
+        setInventoryOpen(!inventoryOpen);
+      },
+      { passive: false }
+    );
+
+    // ---------------------------------------------------------------------
+    // Gamepad controls
+    // ---------------------------------------------------------------------
+    function readGamepadAxis(gamepad, index, deadzone = 0.16) {
+      const value = gamepad.axes[index] || 0;
+      return Math.abs(value) < deadzone ? 0 : value;
+    }
+
+    function readGamepadButton(gamepad, index) {
+      const button = gamepad.buttons[index];
+      return Boolean(button && (button.pressed || button.value > 0.55));
+    }
+
+    function risingEdge(name, pressed) {
+      return pressed && !previousPadActions[name];
+    }
+
+    function moveInventoryCursor(delta) {
+      gamepadInventoryCursor =
+        (gamepadInventoryCursor + delta + inventory.length) % inventory.length;
+
+      if (gamepadInventoryCursor < 9) {
+        selectedSlot = gamepadInventoryCursor;
+      }
+
+      renderInventory();
+    }
+
+    function activateGamepadInventorySlot() {
+      if (gamepadDragSource === null) {
+        gamepadDragSource = gamepadInventoryCursor;
+
+        if (gamepadInventoryCursor < 9) {
+          selectedSlot = gamepadInventoryCursor;
+        }
+      } else {
+        const from = gamepadDragSource;
+        const to = gamepadInventoryCursor;
+
+        if (from !== to) {
+          [inventory[from], inventory[to]] =
+            [inventory[to], inventory[from]];
+          syncInventory();
+        }
+
+        gamepadDragSource = null;
+      }
+
+      renderInventory();
+    }
+
+    function clearGamepadPressedState() {
+      for (const name of Object.keys(previousPadActions)) {
+        previousPadActions[name] = false;
+      }
+    }
+
+    function updateGamepad() {
+      if (!navigator.getGamepads) {
+        controllerStatus.textContent = " · Controller API unavailable";
+        gamepadMoveX = gamepadMoveY = gamepadLookX = gamepadLookY = 0;
+        return;
+      }
+
+      let gamepad = null;
+
+      try {
+        gamepad = Array.from(navigator.getGamepads())
+          .find(pad => pad && pad.connected) || null;
+      } catch {
+        gamepad = null;
+      }
+
+      if (!gamepad) {
+        gamepadMoveX = gamepadMoveY = gamepadLookX = gamepadLookY = 0;
+        controllerStatus.textContent = " · Controller: not connected";
+        clearGamepadPressedState();
+        stopMining("gamepad");
+        return;
+      }
+
+      controllerStatus.textContent =
+        ` · Controller: ${gamepad.id || "connected"}`;
+
+      gamepadMoveX = readGamepadAxis(gamepad, 0);
+      gamepadMoveY = readGamepadAxis(gamepad, 1);
+      gamepadLookX = readGamepadAxis(gamepad, 2);
+      gamepadLookY = readGamepadAxis(gamepad, 3);
+
+      const button = index => readGamepadButton(gamepad, index);
+      const jump = button(0);
+      const back = button(1);
+      const inventoryToggle = button(2);
+      const nextSlot = button(3);
+      const mine = button(4) || button(6);
+      const place = button(5) || button(7);
+      const dpadUp = button(12);
+      const dpadDown = button(13);
+      const dpadLeft = button(14);
+      const dpadRight = button(15);
+
+      if (risingEdge("inventory", inventoryToggle)) {
+        setInventoryOpen(!inventoryOpen);
+      }
+
+      if (inventoryOpen) {
+        if (risingEdge("dpadUp", dpadUp)) moveInventoryCursor(-9);
+        if (risingEdge("dpadDown", dpadDown)) moveInventoryCursor(9);
+        if (risingEdge("dpadLeft", dpadLeft)) moveInventoryCursor(-1);
+        if (risingEdge("dpadRight", dpadRight)) moveInventoryCursor(1);
+        if (risingEdge("jump", jump)) activateGamepadInventorySlot();
+
+        if (risingEdge("back", back)) {
+          gamepadDragSource = null;
+          setInventoryOpen(false);
+        }
+
+        stopMining("gamepad");
+      } else {
+        if (risingEdge("dpadLeft", dpadLeft) || risingEdge("dpadUp", dpadUp)) {
+          selectedSlot = (selectedSlot + 8) % 9;
+          gamepadInventoryCursor = selectedSlot;
+          renderInventory();
+        }
+
+        if (
+          risingEdge("dpadRight", dpadRight) ||
+          risingEdge("dpadDown", dpadDown) ||
+          risingEdge("nextSlot", nextSlot)
+        ) {
+          selectedSlot = (selectedSlot + 1) % 9;
+          gamepadInventoryCursor = selectedSlot;
+          renderInventory();
+        }
+
+        if (risingEdge("jump", jump)) jumpRequested = true;
+
+        if (mine) startMining("gamepad");
+        else stopMining("gamepad");
+
+        if (risingEdge("place", place)) placeBlock();
+      }
+
+      previousPadActions.jump = jump;
+      previousPadActions.mine = mine;
+      previousPadActions.place = place;
+      previousPadActions.inventory = inventoryToggle;
+      previousPadActions.back = back;
+      previousPadActions.nextSlot = nextSlot;
+      previousPadActions.dpadUp = dpadUp;
+      previousPadActions.dpadDown = dpadDown;
+      previousPadActions.dpadLeft = dpadLeft;
+      previousPadActions.dpadRight = dpadRight;
+    }
+
+    window.addEventListener("gamepadconnected", event => {
+      controllerStatus.textContent =
+        ` · Controller: ${event.gamepad.id || "connected"}`;
+    });
+
+    window.addEventListener("gamepaddisconnected", () => {
+      controllerStatus.textContent = " · Controller: not connected";
+      gamepadMoveX = gamepadMoveY = gamepadLookX = gamepadLookY = 0;
+      clearGamepadPressedState();
+      stopMining("gamepad");
+    });
+
+    // ---------------------------------------------------------------------
+    // WebSocket startup and world updates
+    // ---------------------------------------------------------------------
+    function connectWorldSocket() {
+      worldSocket = new WebSocket(socketUrl);
+
+      worldSocket.addEventListener("message", event => {
+        let message;
+
+        try {
+          message = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+
+        if (message.type === "welcome") {
+          applyWelcome(message);
+          return;
+        }
+
+        if (message.type === "inventory_saved") {
+          inventoryDirty = false;
+          return;
+        }
+
+        if (message.type === "player_state") {
+          if (message.player_id !== localPlayerId && message.position) {
+            remotePlayers.set(message.player_id, message.position);
+          }
+          return;
+        }
+
+        if (message.type === "player_left") {
+          remotePlayers.delete(message.player_id);
+          return;
+        }
+
+        if (message.type === "world_edit" && message.edit) {
+          const edit = message.edit;
+
+          if (
+            !Number.isInteger(edit.x) ||
+            !Number.isInteger(edit.y) ||
+            !Number.isInteger(edit.z)
+          ) {
+            return;
+          }
+
+          const key = blockKey(edit.x, edit.y, edit.z);
+
+          if (edit.color === null) {
+            blockEdits.set(key, null);
+            placedBlocks.delete(key);
+          } else if (
+            typeof edit.color === "string" &&
+            /^#[0-9a-fA-F]{6}$/.test(edit.color)
+          ) {
+            const color = edit.color.toLowerCase();
+            blockEdits.set(key, {
+              x: edit.x,
+              y: edit.y,
+              z: edit.z,
+              color,
+              type: worldBlockTypeFromColor(color)
+            });
+          }
+        }
+      });
+
+      worldSocket.addEventListener("close", () => {
+        hasLoadedServerState = false;
+        stopMining();
+        window.setTimeout(connectWorldSocket, 2000);
+      });
+
+      worldSocket.addEventListener("error", () => {
+        worldSocket.close();
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // Initialize
+    // ---------------------------------------------------------------------
+    renderInventory();
+    updateCoordinates();
+    connectWorldSocket();
+
+    let previousTime = performance.now();
+
+    function frame(now) {
+      const dt = Math.min(0.05, (now - previousTime) / 1000);
+      previousTime = now;
+
+      updateGamepad();
+
+      if (!inventoryOpen) {
+        const lookSpeed = 2.4;
+        camera.mouseMove(
+          (gamepadLookX + touchLookX) * lookSpeed * dt * 200,
+          (gamepadLookY + touchLookY) * lookSpeed * dt * 200
+        );
+      }
+
+      updatePhysics(dt);
+      updateMining(now);
+      syncPlayerPosition(now);
+      updateCoordinates();
+      render();
+
+      requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(frame);</script>
