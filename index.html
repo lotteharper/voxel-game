@@ -3305,7 +3305,9 @@
         startMining("mouse");
       } else if (event.button === 0) {
         event.preventDefault();
+        const wasChestOpen = chestOpen;
         placeBlock();
+        if (!wasChestOpen && chestOpen) event.stopPropagation();
       }
 
       if (document.pointerLockElement !== canvas) {
@@ -3431,7 +3433,9 @@
         } else if (action === "mine") {
           startMining("touch");
         } else if (action === "place") {
+          const wasChestOpen = chestOpen;
           placeBlock();
+          if (!wasChestOpen && chestOpen) event.stopPropagation();
         }
       });
 
