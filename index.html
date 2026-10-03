@@ -66,6 +66,27 @@
       pointer-events: none;
     }
 
+    #fullscreenButton {
+      position: fixed;
+      top: calc(max(8px, env(safe-area-inset-top)) + 72px);
+      right: max(8px, env(safe-area-inset-right));
+      z-index: 6;
+      min-width: 44px;
+      min-height: 36px;
+      padding: 6px 10px;
+      border: 1px solid rgba(0, 0, 0, 0.35);
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.92);
+      color: #222;
+      font: 13px/1.2 sans-serif;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    #fullscreenButton:hover { background: #fff; }
+    #fullscreenButton:focus-visible { outline: 3px solid #2a7fff; outline-offset: 2px; }
+    #fullscreenButton[hidden] { display: none; }
+
     #crosshair {
       position: fixed;
       top: 50%;
@@ -409,6 +430,8 @@
 
   <div id="coordinates" aria-label="Player coordinates">X 0.0 · Y 0.0 · Z 0.0</div>
   <div id="timeOfDay" aria-label="Time of day">Day 12:00</div>
+
+  <button id="fullscreenButton" type="button" aria-pressed="false" title="Enter fullscreen">⛶ Fullscreen</button>
 
   <canvas id="c"></canvas>
   <div id="mineProgress" aria-hidden="true"></div>
@@ -3713,6 +3736,41 @@
     }
 
     requestAnimationFrame(frame);
+
+    // ---------------------------------------------------------------------
+    // Fullscreen toggle
+    // ---------------------------------------------------------------------
+    (function setupFullscreen() {
+      const button = document.getElementById("fullscreenButton");
+      const root = document.documentElement;
+      const request = root.requestFullscreen || root.webkitRequestFullscreen;
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (!button || !request || !exit) {
+        if (button) button.hidden = true;
+        return;
+      }
+
+      const isFullscreen = () => Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+
+      function updateButton() {
+        const active = isFullscreen();
+        button.textContent = active ? "✕ Exit Fullscreen" : "⛶ Fullscreen";
+        button.title = active ? "Exit fullscreen" : "Enter fullscreen";
+        button.setAttribute("aria-pressed", String(active));
+      }
+
+      function toggle() {
+        const result = isFullscreen() ? exit.call(document) : request.call(root);
+        if (result && result.catch) result.catch(() => {});
+      }
+
+      button.addEventListener("click", toggle);
+      // Keep Space/Enter on the button from triggering game actions
+      button.addEventListener("keydown", event => event.stopPropagation());
+      document.addEventListener("fullscreenchange", updateButton);
+      document.addEventListener("webkitfullscreenchange", updateButton);
+      updateButton();
+    })();
   </script>
 </body>
 </html>
