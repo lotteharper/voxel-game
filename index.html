@@ -236,6 +236,33 @@
       cursor: not-allowed;
     }
 
+    .craftGuide {
+      margin: 0 0 8px;
+      color: #cfc3ad;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .craftButton .tierTag {
+      display: block;
+      color: #ffd876;
+      font-size: 11px;
+    }
+    #toast {
+      position: fixed;
+      bottom: 84px;
+      left: 50%;
+      z-index: 11;
+      display: none;
+      max-width: calc(100vw - 32px);
+      padding: 7px 12px;
+      border-radius: 6px;
+      background: rgba(30, 24, 18, 0.88);
+      color: #ffe3a0;
+      font-size: 14px;
+      text-align: center;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
     .craftStatus {
       min-height: 1em;
       margin: 7px 0 0;
@@ -337,7 +364,7 @@
 </head>
 <body>
   <div class="hint">
-    WASD move · Space jump · Right-click mine (hold 1s) · Left-click place · E inventory
+    WASD move · Space jump · Right-click mine (hold) · Left-click place / open &amp; close doors (or F) · E inventory
     <span id="controllerStatus"> · Controller: not connected</span>
   </div>
 
@@ -346,6 +373,7 @@
   <canvas id="c"></canvas>
   <div id="mineProgress" aria-hidden="true"></div>
   <div id="crosshair" aria-hidden="true"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
 
   <div id="touchControls" aria-label="Touch game controls">
     <div id="moveStick" class="touch-stick" aria-label="Movement joystick">
@@ -373,6 +401,7 @@
     <div id="inventoryGrid"></div>
     <section class="craftingPanel">
       <h3>Crafting</h3>
+      <p id="craftGuide" class="craftGuide"></p>
       <div id="craftingRecipes"></div>
       <p id="craftStatus" class="craftStatus" aria-live="polite"></p>
     </section>
@@ -394,6 +423,8 @@
     const controllerStatus = document.getElementById("controllerStatus");
     const mineProgressElement = document.getElementById("mineProgress");
     const coordinatesElement = document.getElementById("coordinates");
+    const toastElement = document.getElementById("toast");
+    const craftGuideElement = document.getElementById("craftGuide");
 
     let screenWidth = 0;
     let screenHeight = 0;
@@ -491,7 +522,28 @@
       return t * t * (3 - 2 * t);
     }
 
+    // terrainHeight is a pure function of (x, z) but is queried many times per
+    // frame, so integer columns are memoized.
+    const terrainHeightCache = new Map();
+
     function terrainHeight(x, z) {
+      if (!Number.isInteger(x) || !Number.isInteger(z)) {
+        return computeTerrainHeight(x, z);
+      }
+
+      const key = x * 262144 + z;
+      let height = terrainHeightCache.get(key);
+
+      if (height === undefined) {
+        if (terrainHeightCache.size > 400000) terrainHeightCache.clear();
+        height = computeTerrainHeight(x, z);
+        terrainHeightCache.set(key, height);
+      }
+
+      return height;
+    }
+
+    function computeTerrainHeight(x, z) {
       let baseNoise = 0;
       let amplitude = 1;
       let frequency = 1;
@@ -527,7 +579,10 @@
       return Math.floor(rollingHeight + mountainMask * mountainRelief);
     }
 
-    const WORLD_MIN_Y = -10;
+    // The world is deep enough to hold a full ore progression below the
+    // stone line (y < -4). The bottom layer is never carved by caves.
+    const WORLD_MIN_Y = -24;
+    const STONE_LINE_Y = -4;
     const RENDER_RADIUS = 24;
 
     const PLAYER_HALF_WIDTH = 0.28;
@@ -564,8 +619,63 @@
       wood_axe:      { name: "Wood Axe",      color: "#bf8d43" },
       stone_axe:     { name: "Stone Axe",     color: "#687b91" },
       door:          { name: "Door",          color: "#9a6836" },
-      fence:         { name: "Fence",         color: "#a97843" }
+      fence:         { name: "Fence",         color: "#a97843" },
+      copper_ore:    { name: "Copper Ore",    color: "#c26f3d" },
+      iron_ore:      { name: "Iron Ore",      color: "#cdb8a6" },
+      gold_ore:      { name: "Gold Ore",      color: "#f0c53b" },
+      diamond_ore:   { name: "Diamond Ore",   color: "#44dfe0" },
+      copper_pickaxe:  { name: "Copper Pickaxe",  color: "#d98a52" },
+      iron_pickaxe:    { name: "Iron Pickaxe",    color: "#c9ced6" },
+      gold_pickaxe:    { name: "Gold Pickaxe",    color: "#ffd54a" },
+      diamond_pickaxe: { name: "Diamond Pickaxe", color: "#6cf0f2" }
     };
+
+    // ---------------------------------------------------------------------
+    // Tool tiers and ore requirements
+    //
+    // Pickaxes ascend in tier; every ore needs a pickaxe of at least its
+    // `tier`. Each pickaxe is crafted from the ore the previous tier can mine,
+    // so progression runs: stone -> copper -> iron -> gold -> diamond.
+    // Ores that are mined with too weak a tool are left untouched.
+    // Ores are rarer (and deeper) the higher their tier; see generatedOre().
+    // ---------------------------------------------------------------------
+    const PICKAXE_TIERS = {
+      wood_pickaxe: 1,
+      stone_pickaxe: 2,
+      copper_pickaxe: 3,
+      iron_pickaxe: 4,
+      gold_pickaxe: 5,
+      diamond_pickaxe: 6
+    };
+
+    const ORE_REQUIRED_TIER = {
+      copper_ore: 2,
+      iron_ore: 3,
+      gold_ore: 4,
+      diamond_ore: 5
+    };
+
+    function pickaxeNameForTier(tier) {
+      const type = Object.keys(PICKAXE_TIERS)
+        .find(name => PICKAXE_TIERS[name] === tier);
+      return type ? itemDisplayName(type) : "Pickaxe";
+    }
+
+    function isToolType(type) {
+      return type in PICKAXE_TIERS || /_axe$/.test(type);
+    }
+
+    function itemInfoText(type) {
+      if (type in PICKAXE_TIERS) {
+        return `Pickaxe tier ${PICKAXE_TIERS[type]} of ${Math.max(...Object.values(PICKAXE_TIERS))}`;
+      }
+
+      if (type in ORE_REQUIRED_TIER) {
+        return `Needs ${pickaxeNameForTier(ORE_REQUIRED_TIER[type])} or better to mine`;
+      }
+
+      return "";
+    }
 
     const CRAFTING_RECIPES = [
       {
@@ -591,6 +701,30 @@
         label: "Stone Pickaxe",
         ingredients: { stone: 3, sticks: 2 },
         output: { type: "stone_pickaxe", count: 1 }
+      },
+      {
+        id: "copper_pickaxe",
+        label: "Copper Pickaxe",
+        ingredients: { copper_ore: 3, sticks: 2 },
+        output: { type: "copper_pickaxe", count: 1 }
+      },
+      {
+        id: "iron_pickaxe",
+        label: "Iron Pickaxe",
+        ingredients: { iron_ore: 3, sticks: 2 },
+        output: { type: "iron_pickaxe", count: 1 }
+      },
+      {
+        id: "gold_pickaxe",
+        label: "Gold Pickaxe",
+        ingredients: { gold_ore: 3, sticks: 2 },
+        output: { type: "gold_pickaxe", count: 1 }
+      },
+      {
+        id: "diamond_pickaxe",
+        label: "Diamond Pickaxe",
+        ingredients: { diamond_ore: 3, sticks: 2 },
+        output: { type: "diamond_pickaxe", count: 1 }
       },
       {
         id: "wood_axe",
@@ -621,6 +755,9 @@
     function itemTypeFromColor(color) {
       const normalized = String(color || "").toLowerCase();
 
+      // Placed doors carry their state in the color (see door section).
+      if (DOOR_COLOR_PATTERN.test(normalized)) return "door";
+
       for (const [type, definition] of Object.entries(ITEM_DEFINITIONS)) {
         if (definition.color.toLowerCase() === normalized) return type;
       }
@@ -630,6 +767,106 @@
 
     function itemDisplayName(type) {
       return ITEM_DEFINITIONS[type]?.name || "Block";
+    }
+
+
+    // ---------------------------------------------------------------------
+    // Doors
+    //
+    // A door is a thin panel inside one block cell. The server only stores a
+    // color per edited block, so the whole door state is packed into the
+    // color: "#9a68HN". A door is two blocks high: H = 4 for the lower half
+    // and 5 for the upper half. The low nibble N is
+    //   bit 0     open (1) / closed (0)
+    //   bits 1-2  facing: which cell edge the closed panel sits on
+    //             (0 = -z, 1 = +x, 2 = +z, 3 = -x)
+    //   bit 3     hinge on the right (1) / left (0) when viewed from outside
+    // Both halves share the same N. Placing uses one door item for both
+    // halves, mining either half removes both and drops a single door.
+    // The inventory item keeps the plain color "#9a6836"; old saves that
+    // placed that color as a full block load as a closed single-block door.
+    // Collision, raycasting and rendering all derive from this state.
+    // ---------------------------------------------------------------------
+    const DOOR_THICKNESS = 0.2;
+    const DOOR_SWING_MS = 220;
+    const DOOR_COLOR_PATTERN = /^#9a68[45][0-9a-f]$/;
+
+    function doorStateFromColor(color) {
+      const normalized = String(color || "").toLowerCase();
+
+      if (normalized === ITEM_DEFINITIONS.door.color) {
+        return { open: false, facing: 0, hingeRight: false, upper: false };
+      }
+
+      if (!DOOR_COLOR_PATTERN.test(normalized)) return null;
+
+      const nibble = parseInt(normalized.slice(6), 16);
+      return {
+        upper: normalized[5] === "5",
+        open: (nibble & 1) !== 0,
+        facing: (nibble >> 1) & 3,
+        hingeRight: (nibble & 8) !== 0
+      };
+    }
+
+    function doorColorFromState(state) {
+      const nibble =
+        (state.open ? 1 : 0) |
+        (state.facing << 1) |
+        (state.hingeRight ? 8 : 0);
+
+      return `#9a68${state.upper ? 5 : 4}${nibble.toString(16)}`;
+    }
+
+    // Corners (x, z) of the panel footprint within the cell for a swing angle
+    // in radians (0 = closed, PI/2 = open). The panel pivots about the hinge
+    // post at the cell corner, so an open door lies flush with the hinge side.
+    function doorFootprint(state, angle) {
+      const pivot = DOOR_THICKNESS / 2;
+      const cosine = Math.cos(angle);
+      const sine = Math.sin(angle);
+      const corners = [
+        [0, 0], [1, 0], [1, DOOR_THICKNESS], [0, DOOR_THICKNESS]
+      ];
+
+      return corners.map(([u, v]) => {
+        let x = pivot + (u - pivot) * cosine - (v - pivot) * sine;
+        let z = pivot + (u - pivot) * sine + (v - pivot) * cosine;
+
+        if (state.hingeRight) x = 1 - x;
+
+        switch (state.facing) {
+          case 1: return [1 - z, x];
+          case 2: return [1 - x, 1 - z];
+          case 3: return [z, 1 - x];
+          default: return [x, z];
+        }
+      });
+    }
+
+    // Axis-aligned footprint of the door in its current open/closed state.
+    function doorBounds(block) {
+      const state = doorStateFromColor(block.color);
+      const corners = doorFootprint(state, state.open ? Math.PI / 2 : 0);
+      const xs = corners.map(corner => block.x + corner[0]);
+      const zs = corners.map(corner => block.z + corner[1]);
+
+      return {
+        minX: Math.min(...xs), maxX: Math.max(...xs),
+        minZ: Math.min(...zs), maxZ: Math.max(...zs)
+      };
+    }
+
+    // Horizontal extent a block occupies (full cell unless it is a door).
+    function blockBounds(block) {
+      if (block.type === "door" && doorStateFromColor(block.color)) {
+        return doorBounds(block);
+      }
+
+      return {
+        minX: block.x, maxX: block.x + 1,
+        minZ: block.z, maxZ: block.z + 1
+      };
     }
 
     // ---------------------------------------------------------------------
@@ -720,6 +957,156 @@
       return null;
     }
 
+
+    // ---------------------------------------------------------------------
+    // Deterministic caves and ores
+    //
+    // Everything below is a pure function of (x, y, z), so every client
+    // generates the same underground without any network traffic. Player
+    // edits (mined/placed blocks) are layered on top in getBlock().
+    // ---------------------------------------------------------------------
+    const CAVE_SPAWN_CENTER = [0, -5];
+    const CAVE_SPAWN_CLEAR_RADIUS = 16;
+    const CAVE_ROOF_THICKNESS = 3;
+
+    function hash3(x, y, z, salt) {
+      let value =
+        Math.imul(x, 374761393) +
+        Math.imul(y, 668265263) +
+        Math.imul(z, 2246822519) +
+        Math.imul(salt, 3266489917);
+      value = Math.imul(value ^ (value >>> 13), 1274126177);
+      value = Math.imul(value ^ (value >>> 16), 2246822519);
+      return ((value ^ (value >>> 15)) >>> 0) / 4294967296;
+    }
+
+    // Smoothly interpolated 3D value noise in [0, 1].
+    function valueNoise3(x, y, z, salt) {
+      const xi = Math.floor(x);
+      const yi = Math.floor(y);
+      const zi = Math.floor(z);
+      const u = fade(x - xi);
+      const v = fade(y - yi);
+      const w = fade(z - zi);
+
+      const n = (dx, dy, dz) => hash3(xi + dx, yi + dy, zi + dz, salt);
+
+      return lerp(
+        lerp(
+          lerp(n(0, 0, 0), n(1, 0, 0), u),
+          lerp(n(0, 1, 0), n(1, 1, 0), u),
+          v
+        ),
+        lerp(
+          lerp(n(0, 0, 1), n(1, 0, 1), u),
+          lerp(n(0, 1, 1), n(1, 1, 1), u),
+          v
+        ),
+        w
+      );
+    }
+
+    function isTreeTrunkColumn(x, z) {
+      const gridX = Math.floor(x / 12);
+      const gridZ = Math.floor(z / 12);
+
+      for (let gx = gridX - 1; gx <= gridX + 1; gx++) {
+        for (let gz = gridZ - 1; gz <= gridZ + 1; gz++) {
+          const tree = getTreeAnchor(gx, gz);
+          if (tree && tree.x === x && tree.z === z) return true;
+        }
+      }
+
+      return false;
+    }
+
+    // True when the terrain voxel (x, y, z) below column height `top` is
+    // hollowed out. Two intersecting noise "sheets" give winding tunnels and a
+    // third low-frequency field opens occasional larger chambers.
+    function isCaveAir(x, y, z, top) {
+      if (y <= WORLD_MIN_Y + 1) return false;
+
+      // Keep the spawn area solid.
+      if (
+        Math.hypot(x - CAVE_SPAWN_CENTER[0], z - CAVE_SPAWN_CENTER[1]) <
+        CAVE_SPAWN_CLEAR_RADIUS
+      ) {
+        return false;
+      }
+
+      // Normally a roof of solid ground is left. In rare "entrance" zones the
+      // roof is removed so caves can be found from the
+      // surface (never under a tree trunk, which needs ground to stand on).
+      let roof = CAVE_ROOF_THICKNESS;
+      const entrance = valueNoise3(x / 22, 0.5, z / 22, 7) > 0.74;
+
+      if (entrance) roof = 0;
+      if (y > top - 1 - roof) return false;
+      if (roof === 0 && y === top - 1 && isTreeTrunkColumn(x, z)) {
+        return false;
+      }
+
+      const tunnelA = valueNoise3(x / 16, y / 9, z / 16, 11);
+      const tunnelB = valueNoise3(x / 16, y / 9, z / 16, 13);
+
+      if (Math.abs(tunnelA - 0.5) < 0.045 && Math.abs(tunnelB - 0.5) < 0.045) {
+        return true;
+      }
+
+      return (
+        y <= top - 7 &&
+        valueNoise3(x / 12, y / 7, z / 12, 17) > 0.76
+      );
+    }
+
+    // Ore tiers ascend in rarity and depth. Ores form small clumps: a 2x2x2
+    // cell is selected by `chance`, then most voxels in it become ore.
+    const ORE_GENERATION = [
+      { type: "diamond_ore", maxY: -19, chance: 0.0045, salt: 41 },
+      { type: "gold_ore",    maxY: -14, chance: 0.0090, salt: 31 },
+      { type: "iron_ore",    maxY: -8,  chance: 0.0200, salt: 23 },
+      { type: "copper_ore",  maxY: -5,  chance: 0.0330, salt: 19 }
+    ];
+
+    function generatedOre(x, y, z) {
+      for (const ore of ORE_GENERATION) {
+        if (y > ore.maxY) continue;
+
+        const cellChance = hash3(
+          Math.floor(x / 2), Math.floor(y / 2), Math.floor(z / 2), ore.salt
+        );
+
+        if (cellChance < ore.chance && hash3(x, y, z, ore.salt + 1) < 0.7) {
+          return ore.type;
+        }
+      }
+
+      return null;
+    }
+
+    // Natural terrain block (or null for air/caves) at a position.
+    function generatedTerrainBlock(x, y, z) {
+      if (y < WORLD_MIN_Y) return null;
+
+      const top = terrainHeight(x, z);
+      if (y >= top) return null;
+      if (isCaveAir(x, y, z, top)) return null;
+
+      if (y < STONE_LINE_Y) {
+        const ore = generatedOre(x, y, z);
+        const type = ore || "stone";
+        return { x, y, z, color: ITEM_DEFINITIONS[type].color, type };
+      }
+
+      return {
+        x,
+        y,
+        z,
+        color: terrainColor(y),
+        type: "dirt"
+      };
+    }
+
     // ---------------------------------------------------------------------
     // World blocks and edits
     // ---------------------------------------------------------------------
@@ -742,16 +1129,8 @@
       if (placedBlocks.has(key)) return placedBlocks.get(key);
 
       if (y >= WORLD_MIN_Y && y < terrainHeight(x, z)) {
-        const isStone = y < -4;
-        return {
-          x,
-          y,
-          z,
-          color: isStone
-            ? ITEM_DEFINITIONS.stone.color
-            : terrainColor(y),
-          type: isStone ? "stone" : "dirt"
-        };
+        // Carved-out cave voxels are air, not a hole in the generation.
+        return generatedTerrainBlock(x, y, z);
       }
 
       return generatedTreeBlock(x, y, z);
@@ -759,6 +1138,12 @@
 
     function isSolid(x, y, z) {
       return getBlock(x, y, z) !== null;
+    }
+
+    // Doors are thin, so they do not hide the faces of neighboring blocks.
+    function isOpaqueCube(x, y, z) {
+      const block = getBlock(x, y, z);
+      return block !== null && block.type !== "door";
     }
 
     addPlacedBlock(-3, terrainHeight(-3, 0), 0, "#d84838");
@@ -1015,6 +1400,16 @@
     function renderCraftingRecipes() {
       craftingRecipesElement.replaceChildren();
 
+      craftGuideElement.textContent =
+        "Pickaxe tiers: Wood → Stone → Copper → Iron → Gold → Diamond. " +
+        "Ores sit deeper and get rarer as they improve: " +
+        Object.keys(ORE_REQUIRED_TIER)
+          .map(type =>
+            `${itemDisplayName(type)} needs ${pickaxeNameForTier(ORE_REQUIRED_TIER[type])}+`
+          )
+          .join(", ") +
+        ". Hold the pickaxe in your hotbar to mine.";
+
       for (const recipe of CRAFTING_RECIPES) {
         const requirements = Object.entries(recipe.ingredients)
           .map(([type, count]) => `${count} ${itemDisplayName(type)}`)
@@ -1024,6 +1419,14 @@
         button.type = "button";
         button.className = "craftButton";
         button.textContent = `${recipe.label} — ${requirements}`;
+
+        const info = itemInfoText(recipe.output.type);
+        if (info) {
+          const tag = document.createElement("span");
+          tag.className = "tierTag";
+          tag.textContent = info;
+          button.appendChild(tag);
+        }
         button.disabled = !hasRecipeIngredients(recipe);
         button.addEventListener("click", () => craftRecipe(recipe));
 
@@ -1042,9 +1445,15 @@
       }
 
       element.draggable = true;
-      element.title = item
-        ? `Slot ${index + 1}: ${itemDisplayName(item.type || itemTypeFromColor(item.color))} (${item.count})`
-        : `Slot ${index + 1}`;
+      if (item) {
+        const itemType = item.type || itemTypeFromColor(item.color);
+        const info = itemInfoText(itemType);
+        element.title =
+          `Slot ${index + 1}: ${itemDisplayName(itemType)} (${item.count})` +
+          (info ? ` — ${info}` : "");
+      } else {
+        element.title = `Slot ${index + 1}`;
+      }
 
       const number = document.createElement("span");
       number.className = "slotNumber";
@@ -1474,6 +1883,34 @@
     // ---------------------------------------------------------------------
     // Voxel-grid raycast from the center crosshair
     // ---------------------------------------------------------------------
+    // Slab test of a ray against the door's current (open/closed) box.
+    function rayHitsDoor(origin, direction, block, maxDistance) {
+      const bounds = doorBounds(block);
+      const min = [bounds.minX, block.y, bounds.minZ];
+      const max = [bounds.maxX, block.y + 1, bounds.maxZ];
+      let near = 0;
+      let far = maxDistance;
+
+      for (let axis = 0; axis < 3; axis++) {
+        if (Math.abs(direction[axis]) < 1e-12) {
+          if (origin[axis] < min[axis] || origin[axis] > max[axis]) {
+            return false;
+          }
+          continue;
+        }
+
+        let t1 = (min[axis] - origin[axis]) / direction[axis];
+        let t2 = (max[axis] - origin[axis]) / direction[axis];
+        if (t1 > t2) [t1, t2] = [t2, t1];
+
+        near = Math.max(near, t1);
+        far = Math.min(far, t2);
+        if (near > far) return false;
+      }
+
+      return true;
+    }
+
     function raycast(maxDistance = 7) {
       const pitch = camera.rot[0];
       const yaw = camera.rot[1];
@@ -1528,7 +1965,15 @@
       let distance = 0;
 
       while (distance <= maxDistance) {
-        if (isSolid(cell[0], cell[1], cell[2])) {
+        const cellBlock = getBlock(cell[0], cell[1], cell[2]);
+
+        // Thin doors are only hit where the panel actually is, so the ray
+        // passes through the empty part of a cell (e.g. an open doorway).
+        if (
+          cellBlock &&
+          (cellBlock.type !== "door" ||
+            rayHitsDoor(origin, direction, cellBlock, maxDistance))
+        ) {
           return { hit: [...cell], previous };
         }
 
@@ -1592,6 +2037,37 @@
       }
     }
 
+    // Tier of the pickaxe in the selected hotbar slot (0 = bare hands).
+    function heldPickaxeTier() {
+      const item = inventory[selectedSlot];
+      if (!item || item.count <= 0) return 0;
+      return PICKAXE_TIERS[item.type || itemTypeFromColor(item.color)] || 0;
+    }
+
+    let lastToastText = "";
+    let toastTimer = null;
+
+    function showToast(text, durationMs = 1800) {
+      toastElement.textContent = text;
+      toastElement.style.display = "block";
+      lastToastText = text;
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => {
+        toastElement.style.display = "none";
+        lastToastText = "";
+      }, durationMs);
+    }
+
+    // Ores take longer to break than plain blocks, and a better pickaxe
+    // speeds up stone and ore.
+    function miningDuration(blockType, tier) {
+      const isOre = blockType in ORE_REQUIRED_TIER;
+      const isRock = isOre || blockType === "stone";
+      const hardness = isOre ? 1.5 : 1;
+      const speed = isRock ? 1 + 0.25 * tier : 1;
+      return MINE_DURATION_MS * hardness / speed;
+    }
+
     function updateMining(now) {
       if (inventoryOpen || miningSources.size === 0) {
         mineProgressElement.style.display = "none";
@@ -1610,6 +2086,29 @@
       const [x, y, z] = result.hit;
       const key = blockKey(x, y, z);
 
+      const targetBlock = getBlock(x, y, z);
+      const targetType = targetBlock
+        ? targetBlock.type || itemTypeFromColor(targetBlock.color)
+        : null;
+
+      // Ore tier gate: the block is left untouched if the held pickaxe is too
+      // weak, and no mining progress is made.
+      const requiredTier = ORE_REQUIRED_TIER[targetType] || 0;
+      const toolTier = heldPickaxeTier();
+
+      if (toolTier < requiredTier) {
+        const message =
+          `${itemDisplayName(targetType)} needs a ` +
+          `${pickaxeNameForTier(requiredTier)} or better — hold it in your hotbar.`;
+
+        if (lastToastText !== message) showToast(message);
+
+        miningTargetKey = null;
+        miningStartedAt = 0;
+        mineProgressElement.style.display = "none";
+        return;
+      }
+
       if (key !== miningTargetKey) {
         miningTargetKey = key;
         miningStartedAt = now;
@@ -1617,7 +2116,7 @@
 
       const progress = Math.min(
         1,
-        (now - miningStartedAt) / MINE_DURATION_MS
+        (now - miningStartedAt) / miningDuration(targetType, toolTier)
       );
 
       mineProgressElement.style.display = "block";
@@ -1628,7 +2127,7 @@
 
       if (progress < 1) return;
 
-      const block = getBlock(x, y, z);
+      const block = targetBlock;
 
       if (
         !block ||
@@ -1641,9 +2140,93 @@
         return;
       }
 
+      // A door is two blocks but drops only one item: remove both halves.
+      const partner = block.type === "door" ? doorPartner(x, y, z) : null;
       removeBlock(x, y, z);
+      if (partner) removeBlock(partner.x, partner.y, partner.z);
       miningTargetKey = null;
       miningStartedAt = now;
+    }
+
+    // The closed panel sits on the far edge of the cell, facing the way the
+    // player is looking.
+    function doorFacingFromYaw(yaw) {
+      const lookX = Math.sin(yaw);
+      const lookZ = Math.cos(yaw);
+
+      if (Math.abs(lookZ) >= Math.abs(lookX)) return lookZ > 0 ? 2 : 0;
+      return lookX > 0 ? 1 : 3;
+    }
+
+    // Swings a door open or closed. The new state is a normal world edit (a
+    // color change), so it is saved and broadcast like any other block edit.
+    function toggleDoor(x, y, z) {
+      const block = getBlock(x, y, z);
+      const state = block && doorStateFromColor(block.color);
+      if (!state) return false;
+
+      const open = !state.open;
+      const halves = [{ y, upper: state.upper }];
+      const partner = doorPartner(x, y, z);
+      if (partner) halves.push({ y: partner.y, upper: !state.upper });
+
+      const edits = halves.map(half => {
+        const color = doorColorFromState({ ...state, open, upper: half.upper });
+        return { x, y: half.y, z, color, type: "door" };
+      });
+
+      if (!open) {
+        for (const edit of edits) {
+          const bounds = doorBounds(edit);
+          const blocked =
+            camera.pos[0] + PLAYER_HALF_WIDTH > bounds.minX &&
+            camera.pos[0] - PLAYER_HALF_WIDTH < bounds.maxX &&
+            camera.pos[1] + PLAYER_HEIGHT > edit.y &&
+            camera.pos[1] < edit.y + 1 &&
+            camera.pos[2] + PLAYER_HALF_WIDTH > bounds.minZ &&
+            camera.pos[2] - PLAYER_HALF_WIDTH < bounds.maxZ;
+
+          if (blocked) {
+            showToast("Step out of the doorway first.");
+            return false;
+          }
+        }
+      }
+
+      for (const edit of edits) {
+        blockEdits.set(blockKey(x, edit.y, z), edit);
+        sendWorldEdit(x, edit.y, z, edit.color);
+      }
+
+      return true;
+    }
+
+    // The other half of a two-block-high door, or null (e.g. legacy doors).
+    function doorPartner(x, y, z) {
+      const block = getBlock(x, y, z);
+      const state = block && doorStateFromColor(block.color);
+      if (!state) return null;
+
+      const partnerY = state.upper ? y - 1 : y + 1;
+      const other = getBlock(x, partnerY, z);
+      const otherState = other && other.type === "door" &&
+        doorStateFromColor(other.color);
+
+      return otherState && otherState.upper !== state.upper
+        ? { x, y: partnerY, z }
+        : null;
+    }
+
+    // Interact key (F): toggle the door under the crosshair, if any.
+    function useTarget() {
+      if (inventoryOpen) return;
+
+      const result = raycast();
+      if (!result) return;
+
+      const [x, y, z] = result.hit;
+      const block = getBlock(x, y, z);
+      if (block && block.type === "door") toggleDoor(x, y, z);
     }
 
     function placeBlock() {
@@ -1652,29 +2235,73 @@
       const now = performance.now();
       if (now - lastSuccessfulPlacementAt < PLACE_COOLDOWN_MS) return;
 
+      const result = raycast();
+
+      // Using (place/left-click, touch Place, gamepad trigger) on a door
+      // swings it open or closed instead of placing a block.
+      if (result) {
+        const [hx, hy, hz] = result.hit;
+        const hitBlock = getBlock(hx, hy, hz);
+
+        if (hitBlock && hitBlock.type === "door") {
+          if (toggleDoor(hx, hy, hz)) lastSuccessfulPlacementAt = now;
+          return;
+        }
+      }
+
       const item = inventory[selectedSlot];
       if (!item || item.count <= 0) return;
-
-      const result = raycast();
       if (!result || !result.previous) return;
+
+      const type = item.type || itemTypeFromColor(item.color);
+
+      if (isToolType(type)) {
+        showToast("Tools can't be placed — switch to a block.");
+        return;
+      }
 
       const [x, y, z] = result.previous;
       if (isSolid(x, y, z)) return;
+      if (type === "door" && isSolid(x, y + 1, z)) return;
+
+      let color = item.color;
+      let bounds = { minX: x, maxX: x + 1, minZ: z, maxZ: z + 1 };
+
+      if (type === "door") {
+        const state = {
+          open: false,
+          facing: doorFacingFromYaw(camera.rot[1]),
+          hingeRight: false,
+          upper: false
+        };
+        color = doorColorFromState(state);
+        bounds = doorBounds({ x, y, z, color, type });
+      }
 
       const overlapsPlayer =
-        camera.pos[0] + PLAYER_HALF_WIDTH > x &&
-        camera.pos[0] - PLAYER_HALF_WIDTH < x + 1 &&
+        camera.pos[0] + PLAYER_HALF_WIDTH > bounds.minX &&
+        camera.pos[0] - PLAYER_HALF_WIDTH < bounds.maxX &&
         camera.pos[1] + PLAYER_HEIGHT > y &&
-        camera.pos[1] < y + 1 &&
-        camera.pos[2] + PLAYER_HALF_WIDTH > z &&
-        camera.pos[2] - PLAYER_HALF_WIDTH < z + 1;
+        camera.pos[1] < y + (type === "door" ? 2 : 1) &&
+        camera.pos[2] + PLAYER_HALF_WIDTH > bounds.minZ &&
+        camera.pos[2] - PLAYER_HALF_WIDTH < bounds.maxZ;
 
       if (overlapsPlayer) return;
 
-      const type = item.type || itemTypeFromColor(item.color);
-      const placed = { x, y, z, color: item.color, type };
+      const placed = { x, y, z, color, type };
       blockEdits.set(blockKey(x, y, z), placed);
-      sendWorldEdit(x, y, z, item.color);
+      sendWorldEdit(x, y, z, color);
+
+      if (type === "door") {
+        const upperColor = doorColorFromState({
+          ...doorStateFromColor(color), upper: true
+        });
+        blockEdits.set(
+          blockKey(x, y + 1, z),
+          { x, y: y + 1, z, color: upperColor, type }
+        );
+        sendWorldEdit(x, y + 1, z, upperColor);
+      }
 
       item.count--;
       if (item.count <= 0) inventory[selectedSlot] = null;
@@ -1688,11 +2315,13 @@
     // Collision and physics
     // ---------------------------------------------------------------------
     function playerOverlapsBlock(x, feetY, z, block) {
+      const bounds = blockBounds(block);
+
       return (
-        x + PLAYER_HALF_WIDTH > block.x &&
-        x - PLAYER_HALF_WIDTH < block.x + 1 &&
-        z + PLAYER_HALF_WIDTH > block.z &&
-        z - PLAYER_HALF_WIDTH < block.z + 1 &&
+        x + PLAYER_HALF_WIDTH > bounds.minX &&
+        x - PLAYER_HALF_WIDTH < bounds.maxX &&
+        z + PLAYER_HALF_WIDTH > bounds.minZ &&
+        z - PLAYER_HALF_WIDTH < bounds.maxZ &&
         feetY + PLAYER_HEIGHT > block.y &&
         feetY < block.y + 1
       );
@@ -1729,7 +2358,21 @@
       const scanTop = Math.floor(feetY + 1e-9);
 
       for (let y = scanTop; y >= WORLD_MIN_Y; y--) {
-        if (getBlock(bx, y, bz)) return y + 1;
+        const block = getBlock(bx, y, bz);
+        if (!block) continue;
+
+        // A thin door only supports weight where the panel actually is.
+        if (block.type === "door") {
+          const bounds = doorBounds(block);
+          if (
+            x < bounds.minX || x > bounds.maxX ||
+            z < bounds.minZ || z > bounds.maxZ
+          ) {
+            continue;
+          }
+        }
+
+        return y + 1;
       }
 
       return WORLD_MIN_Y;
@@ -1860,11 +2503,12 @@
             const block = getBlock(x, y, z);
             if (!block) continue;
 
+            const bounds = blockBounds(block);
             const horizontalOverlap =
-              camera.pos[0] + PLAYER_HALF_WIDTH > block.x &&
-              camera.pos[0] - PLAYER_HALF_WIDTH < block.x + 1 &&
-              camera.pos[2] + PLAYER_HALF_WIDTH > block.z &&
-              camera.pos[2] - PLAYER_HALF_WIDTH < block.z + 1;
+              camera.pos[0] + PLAYER_HALF_WIDTH > bounds.minX &&
+              camera.pos[0] - PLAYER_HALF_WIDTH < bounds.maxX &&
+              camera.pos[2] + PLAYER_HALF_WIDTH > bounds.minZ &&
+              camera.pos[2] - PLAYER_HALF_WIDTH < bounds.maxZ;
 
             if (!horizontalOverlap) continue;
 
@@ -2061,7 +2705,104 @@
       ) > 0;
     }
 
+    // Swing progress (0 closed .. 1 open) per door, animated toward the
+    // door's state. Remote players' door changes animate the same way.
+    const doorSwing = new Map();
+    let renderFrameId = 0;
+
+    function addDoorFaces(faces, block) {
+      const state = doorStateFromColor(block.color);
+      if (!state) return;
+
+      const key = blockKey(block.x, block.y, block.z);
+      const target = state.open ? 1 : 0;
+      let swing = doorSwing.get(key);
+
+      if (!swing) swing = { value: target, seen: 0 };
+      if (swing.seen !== renderFrameId - 1 && swing.seen !== renderFrameId) {
+        swing.value = target;
+      }
+
+      const step = frameDeltaMs / DOOR_SWING_MS;
+      if (swing.seen !== renderFrameId) {
+        swing.value += Math.max(-step, Math.min(step, target - swing.value));
+      }
+
+      swing.seen = renderFrameId;
+      doorSwing.set(key, swing);
+
+      const corners = doorFootprint(state, swing.value * Math.PI / 2)
+        .map(([cx, cz]) => [block.x + cx, block.z + cz]);
+      const centroid = [
+        corners.reduce((sum, c) => sum + c[0], 0) / 4,
+        corners.reduce((sum, c) => sum + c[1], 0) / 4
+      ];
+      const eye = [
+        camera.pos[0], camera.pos[1] + EYE_HEIGHT, camera.pos[2]
+      ];
+      const y0 = block.y;
+      const y1 = block.y + 1;
+
+      const pushQuad = (points, normal, shade) => {
+        const center = points.reduce(
+          (sum, p) => [sum[0] + p[0] / 4, sum[1] + p[1] / 4, sum[2] + p[2] / 4],
+          [0, 0, 0]
+        );
+
+        const facing =
+          normal[0] * (eye[0] - center[0]) +
+          normal[1] * (eye[1] - center[1]) +
+          normal[2] * (eye[2] - center[2]);
+        if (facing <= 0) return;
+
+        const polygon = clipNear(points.map(worldToCamera));
+        if (polygon.length < 3) return;
+
+        faces.push({
+          depth: polygon.reduce((sum, v) => sum + v[2], 0) / polygon.length,
+          points: polygon,
+          color: shadeColor(ITEM_DEFINITIONS.door.color, shade)
+        });
+      };
+
+      for (let i = 0; i < 4; i++) {
+        const a = corners[i];
+        const b = corners[(i + 1) % 4];
+        let nx = b[1] - a[1];
+        let nz = a[0] - b[0];
+        const length = Math.hypot(nx, nz) || 1;
+        nx /= length;
+        nz /= length;
+
+        // Make the normal point away from the panel's center.
+        if (nx * ((a[0] + b[0]) / 2 - centroid[0]) +
+            nz * ((a[1] + b[1]) / 2 - centroid[1]) < 0) {
+          nx = -nx;
+          nz = -nz;
+        }
+
+        const shade = Math.abs(nz) >= Math.abs(nx)
+          ? (nz < 0 ? 0.78 : 1.0)
+          : (nx < 0 ? 0.86 : 0.72);
+
+        pushQuad(
+          [[a[0], y0, a[1]], [b[0], y0, b[1]],
+           [b[0], y1, b[1]], [a[0], y1, a[1]]],
+          [nx, 0, nz],
+          shade
+        );
+      }
+
+      pushQuad(corners.map(c => [c[0], y1, c[1]]), [0, 1, 0], 1.12);
+      pushQuad(corners.map(c => [c[0], y0, c[1]]), [0, -1, 0], 0.62);
+    }
+
     function addCubeFaces(faces, block) {
+      if (block.type === "door" && doorStateFromColor(block.color)) {
+        addDoorFaces(faces, block);
+        return;
+      }
+
       const center = [
         block.x + 0.5,
         block.y + 0.5,
@@ -2080,7 +2821,7 @@
         const [nx, ny, nz] = face.neighbor;
 
         if (!faceFacesCamera(center, [nx, ny, nz])) continue;
-        if (isSolid(block.x + nx, block.y + ny, block.z + nz)) continue;
+        if (isOpaqueCube(block.x + nx, block.y + ny, block.z + nz)) continue;
 
         const polygon = clipNear(face.ids.map(index => vertices[index]));
         if (polygon.length < 3) continue;
@@ -2167,11 +2908,18 @@
       return colors[(hash >>> 0) % colors.length];
     }
 
+    let frameDeltaMs = 16;
+    // Vertical half-height of the always-drawn band around the camera.
+    const CAVE_RENDER_BAND = 10;
+
     function render() {
+      renderFrameId++;
       ctx.fillStyle = "#dce8f2";
       ctx.fillRect(0, 0, screenWidth, screenHeight);
 
       const faces = [];
+      const cameraBandLow = Math.floor(camera.pos[1]) - CAVE_RENDER_BAND;
+      const cameraBandHigh = Math.floor(camera.pos[1]) + CAVE_RENDER_BAND;
       const startX = Math.floor(camera.pos[0]) - RENDER_RADIUS;
       const endX = Math.floor(camera.pos[0]) + RENDER_RADIUS;
       const startZ = Math.floor(camera.pos[2]) - RENDER_RADIUS;
@@ -2181,7 +2929,23 @@
         for (let z = startZ; z <= endZ; z++) {
           const top = terrainHeight(x, z);
 
-          for (let y = WORLD_MIN_Y; y < top + 7; y++) {
+          // Only draw what can be seen: the surface skin down to the lowest
+          // neighboring column (so cliff faces stay filled in), plus a band
+          // around the camera so caves and tunnels render when underground.
+          const lowestNeighbor = Math.min(
+            top,
+            terrainHeight(x - 1, z), terrainHeight(x + 1, z),
+            terrainHeight(x, z - 1), terrainHeight(x, z + 1)
+          );
+          const surfaceLow = Math.max(WORLD_MIN_Y, lowestNeighbor - 1);
+          const bandHigh = Math.min(cameraBandHigh, surfaceLow - 1);
+
+          for (let y = Math.max(WORLD_MIN_Y, cameraBandLow); y <= bandHigh; y++) {
+            const block = getBlock(x, y, z);
+            if (block) addCubeFaces(faces, block);
+          }
+
+          for (let y = surfaceLow; y < top + 7; y++) {
             const block = getBlock(x, y, z);
             if (block) addCubeFaces(faces, block);
           }
@@ -2214,6 +2978,10 @@
 
       for (const [playerId, position] of remotePlayers) {
         addRemoteAvatarFaces(faces, position, playerColor(playerId));
+      }
+
+      for (const [key, swing] of doorSwing) {
+        if (swing.seen < renderFrameId - 1) doorSwing.delete(key);
       }
 
       faces.sort((a, b) => b.depth - a.depth);
@@ -2257,6 +3025,11 @@
       if (event.code === "Escape" && inventoryOpen) {
         gamepadDragSource = null;
         setInventoryOpen(false);
+        return;
+      }
+
+      if (event.code === "KeyF" && !event.repeat) {
+        useTarget();
         return;
       }
 
@@ -2717,6 +3490,7 @@
 
     function frame(now) {
       const dt = Math.min(0.05, (now - previousTime) / 1000);
+      frameDeltaMs = dt * 1000;
       previousTime = now;
 
       updateGamepad();
