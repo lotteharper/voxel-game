@@ -698,7 +698,7 @@
       fence:         { name: "Fence",         color: "#a97843" },
       coal:          { name: "Coal",           color: "#252525" },
       torch:         { name: "Torch",          color: "#ffb52e", light: 1 },
-      water:         { name: "Water",          color: "#4b9dcc", translucent: true },
+      water:         { name: "Water",          color: "#1877d2" },
       chest:         { name: "Chest",          color: "#9b5b2e" },
       copper_ore:    { name: "Copper Ore",    color: "#c26f3d" },
       iron_ore:      { name: "Iron Ore",      color: "#cdb8a6" },
@@ -1697,6 +1697,12 @@
         document.pointerLockElement && document.exitPointerLock?.();
       }
     }
+
+    document.addEventListener("pointerdown", event => {
+      if (chestOpen && !chestPanel.contains(event.target)) {
+        setChestOpen(false);
+      }
+    });
 
     function stopMining(source) {
       if (source === undefined) {
@@ -3046,7 +3052,7 @@
           depth,
           points: polygon,
           color: block.type === "water"
-            ? `rgba(65,145,200,${0.42 * worldLight})`
+            ? shadeColor(block.color, face.shade * worldLight)
             : shadeColor(
                 block.color,
                 face.shade * (block.type === "torch" ? Math.max(worldLight, 0.85) : worldLight)
