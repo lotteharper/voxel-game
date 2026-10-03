@@ -527,11 +527,14 @@
     const terrainHeightCache = new Map();
 
     function terrainHeight(x, z) {
-      if (!Number.isInteger(x) || !Number.isInteger(z)) {
+      if (
+        !Number.isInteger(x) || !Number.isInteger(z) ||
+        Math.abs(x) >= 65536 || Math.abs(z) >= 65536
+      ) {
         return computeTerrainHeight(x, z);
       }
 
-      const key = x * 262144 + z;
+      const key = (x + 65536) * 131072 + (z + 65536);
       let height = terrainHeightCache.get(key);
 
       if (height === undefined) {
@@ -2708,6 +2711,7 @@
     // Swing progress (0 closed .. 1 open) per door, animated toward the
     // door's state. Remote players' door changes animate the same way.
     const doorSwing = new Map();
+    let frameDeltaMs = 16;
     let renderFrameId = 0;
 
     function addDoorFaces(faces, block) {
@@ -2908,7 +2912,6 @@
       return colors[(hash >>> 0) % colors.length];
     }
 
-    let frameDeltaMs = 16;
     // Vertical half-height of the always-drawn band around the camera.
     const CAVE_RENDER_BAND = 10;
 
