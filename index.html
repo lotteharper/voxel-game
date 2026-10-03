@@ -53,6 +53,19 @@
       pointer-events: none;
     }
 
+    #timeOfDay {
+      position: fixed;
+      top: 48px;
+      right: 8px;
+      z-index: 5;
+      padding: 6px 8px;
+      border-radius: 4px;
+      background: rgba(20, 28, 45, 0.72);
+      color: white;
+      font: 12px/1.2 monospace;
+      pointer-events: none;
+    }
+
     #crosshair {
       position: fixed;
       top: 50%;
@@ -129,6 +142,32 @@
     }
 
     #inventoryPanel.open { display: block; }
+
+    #chestPanel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      z-index: 12;
+      display: none;
+      box-sizing: border-box;
+      width: max-content;
+      max-width: calc(100vw - 16px);
+      padding: 14px;
+      border: 2px solid #594c3c;
+      border-radius: 8px;
+      background: rgba(37, 34, 30, 0.96);
+      color: white;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+    }
+
+    #chestPanel.open { display: block; }
+
+    #chestGrid {
+      display: grid;
+      grid-template-columns: repeat(9, var(--slot-size));
+      gap: 4px;
+    }
 
     #inventoryTitle {
       margin: 0 0 10px;
@@ -364,11 +403,12 @@
 </head>
 <body>
   <div class="hint">
-    WASD move · Space jump · Right-click mine (hold) · Left-click place / open &amp; close doors (or F) · E inventory
+    WASD move · Space jump · Right-click mine (hold) · Left-click place / open chests &amp; doors (or F) · E inventory
     <span id="controllerStatus"> · Controller: not connected</span>
   </div>
 
   <div id="coordinates" aria-label="Player coordinates">X 0.0 · Y 0.0 · Z 0.0</div>
+  <div id="timeOfDay" aria-label="Time of day">Day 12:00</div>
 
   <canvas id="c"></canvas>
   <div id="mineProgress" aria-hidden="true"></div>
@@ -407,6 +447,12 @@
     </section>
   </div>
 
+  <div id="chestPanel" class="inventoryPanel">
+    <h2 id="chestTitle">Chest</h2>
+    <div id="chestGrid"></div>
+    <p class="craftStatus">Click a slot to swap it with your selected hotbar slot. Press Escape to close.</p>
+  </div>
+
   <script>
     "use strict";
 
@@ -417,6 +463,10 @@
     const ctx = canvas.getContext("2d");
     const hotbarElement = document.getElementById("hotbar");
     const inventoryPanel = document.getElementById("inventoryPanel");
+    const chestPanel = document.getElementById("chestPanel");
+    const chestGrid = document.getElementById("chestGrid");
+    const chestTitle = document.getElementById("chestTitle");
+    const timeOfDayElement = document.getElementById("timeOfDay");
     const inventoryGrid = document.getElementById("inventoryGrid");
     const craftingRecipesElement = document.getElementById("craftingRecipes");
     const craftStatusElement = document.getElementById("craftStatus");
@@ -623,6 +673,10 @@
       stone_axe:     { name: "Stone Axe",     color: "#687b91" },
       door:          { name: "Door",          color: "#9a6836" },
       fence:         { name: "Fence",         color: "#a97843" },
+      coal:          { name: "Coal",           color: "#252525" },
+      torch:         { name: "Torch",          color: "#ffb52e", light: 1 },
+      water:         { name: "Water",          color: "#4b9dcc", translucent: true },
+      chest:         { name: "Chest",          color: "#9b5b2e" },
       copper_ore:    { name: "Copper Ore",    color: "#c26f3d" },
       iron_ore:      { name: "Iron Ore",      color: "#cdb8a6" },
       gold_ore:      { name: "Gold Ore",      color: "#f0c53b" },
@@ -652,6 +706,7 @@
     };
 
     const ORE_REQUIRED_TIER = {
+      coal: 1,
       copper_ore: 2,
       iron_ore: 3,
       gold_ore: 4,
@@ -752,6 +807,18 @@
         label: "3 Fences",
         ingredients: { planks: 4, sticks: 2 },
         output: { type: "fence", count: 3 }
+      },
+      {
+        id: "torch",
+        label: "4 Torches",
+        ingredients: { sticks: 1, coal: 1 },
+        output: { type: "torch", count: 4 }
+      },
+      {
+        id: "chest",
+        label: "Chest",
+        ingredients: { planks: 8 },
+        output: { type: "chest", count: 1 }
       }
     ];
 
@@ -1068,7 +1135,8 @@
       { type: "diamond_ore", maxY: -19, chance: 0.0045, salt: 41 },
       { type: "gold_ore",    maxY: -14, chance: 0.0090, salt: 31 },
       { type: "iron_ore",    maxY: -8,  chance: 0.0200, salt: 23 },
-      { type: "copper_ore",  maxY: -5,  chance: 0.0330, salt: 19 }
+      { type: "copper_ore",  maxY: -5,  chance: 0.0330, salt: 19 },
+      { type: "coal",        maxY:  1,  chance: 0.0450, salt: 13 }
     ];
 
     function generatedOre(x, y, z) {
@@ -1093,6 +1161,9 @@
 
       const top = terrainHeight(x, z);
       if (y >= top) return null;
+      if (y === 0 && top <= 2) {
+        return { x, y, z, color: ITEM_DEFINITIONS.water.color, type: "water" };
+      }
       if (isCaveAir(x, y, z, top)) return null;
 
       if (y < STONE_LINE_Y) {
@@ -1146,7 +1217,7 @@
     // Doors are thin, so they do not hide the faces of neighboring blocks.
     function isOpaqueCube(x, y, z) {
       const block = getBlock(x, y, z);
-      return block !== null && block.type !== "door";
+      return block !== null && block.type !== "door" && block.type !== "water";
     }
 
     addPlacedBlock(-3, terrainHeight(-3, 0), 0, "#d84838");
@@ -1194,12 +1265,15 @@
     // Game state
     // ---------------------------------------------------------------------
     const inventory = Array.from({ length: 27 }, () => null);
+    const chestContents = new Map();
     const keys = Object.create(null);
     const remotePlayers = new Map();
     const pendingWorldEdits = new Map();
 
     let selectedSlot = 0;
     let inventoryOpen = false;
+    let chestOpen = false;
+    let activeChestKey = null;
     let jumpRequested = false;
 
     let gamepadMoveX = 0;
@@ -1224,6 +1298,28 @@
     let lastNetworkUpdate = 0;
     let hasLoadedServerState = false;
     let inventoryDirty = false;
+
+    function chestStorageKey() {
+      return `voxel-game-chests-${roomName}`;
+    }
+
+    function loadChestContents() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(chestStorageKey()) || "{}");
+        for (const [key, items] of Object.entries(saved)) {
+          if (Array.isArray(items) && items.length === 27) {
+            chestContents.set(key, items);
+          }
+        }
+      } catch {
+        chestContents.clear();
+      }
+    }
+
+    function saveChestContents() {
+      const payload = Object.fromEntries(chestContents);
+      localStorage.setItem(chestStorageKey(), JSON.stringify(payload));
+    }
 
     const previousPadActions = {
       jump: false,
@@ -1531,6 +1627,54 @@
       renderCraftingRecipes();
     }
 
+    function renderChest() {
+      if (!activeChestKey) return;
+      const items = chestContents.get(activeChestKey) || Array.from({ length: 27 }, () => null);
+      chestContents.set(activeChestKey, items);
+      chestGrid.replaceChildren();
+
+      for (let index = 0; index < items.length; index++) {
+        const item = items[index];
+        const element = document.createElement("div");
+        element.className = "slot";
+        element.title = item
+          ? `${itemDisplayName(item.type)} (${item.count})`
+          : `Chest slot ${index + 1}`;
+        if (item) {
+          const swatch = document.createElement("span");
+          swatch.className = "slotColor";
+          swatch.style.backgroundColor = item.color;
+          element.appendChild(swatch);
+          const count = document.createElement("span");
+          count.className = "slotCount";
+          count.textContent = String(item.count);
+          element.appendChild(count);
+        }
+        element.addEventListener("click", () => {
+          [items[index], inventory[selectedSlot]] =
+            [inventory[selectedSlot], items[index]];
+          renderChest();
+          renderInventory();
+          syncInventory();
+          saveChestContents();
+        });
+        chestGrid.appendChild(element);
+      }
+    }
+
+    function setChestOpen(open, key = activeChestKey) {
+      chestOpen = Boolean(open);
+      activeChestKey = chestOpen ? key : null;
+      chestPanel.classList.toggle("open", chestOpen);
+      if (chestOpen) {
+        inventoryOpen = false;
+        inventoryPanel.classList.remove("open");
+        chestTitle.textContent = "Chest at " + key;
+        renderChest();
+        document.pointerLockElement && document.exitPointerLock?.();
+      }
+    }
+
     function stopMining(source) {
       if (source === undefined) {
         miningSources.clear();
@@ -1548,6 +1692,7 @@
 
     function setInventoryOpen(open) {
       inventoryOpen = Boolean(open);
+      if (inventoryOpen) setChestOpen(false);
       inventoryPanel.classList.toggle("open", inventoryOpen);
 
       for (const code of Object.keys(keys)) keys[code] = false;
@@ -2131,6 +2276,10 @@
       if (progress < 1) return;
 
       const block = targetBlock;
+      if (block?.type === "water") {
+        stopMining();
+        return;
+      }
 
       if (
         !block ||
@@ -2222,7 +2371,7 @@
 
     // Interact key (F): toggle the door under the crosshair, if any.
     function useTarget() {
-      if (inventoryOpen) return;
+      if (inventoryOpen || chestOpen) return;
 
       const result = raycast();
       if (!result) return;
@@ -2230,10 +2379,11 @@
       const [x, y, z] = result.hit;
       const block = getBlock(x, y, z);
       if (block && block.type === "door") toggleDoor(x, y, z);
+      if (block && block.type === "chest") setChestOpen(true, blockKey(x, y, z));
     }
 
     function placeBlock() {
-      if (inventoryOpen) return;
+      if (inventoryOpen || chestOpen) return;
 
       const now = performance.now();
       if (now - lastSuccessfulPlacementAt < PLACE_COOLDOWN_MS) return;
@@ -2248,6 +2398,10 @@
 
         if (hitBlock && hitBlock.type === "door") {
           if (toggleDoor(hx, hy, hz)) lastSuccessfulPlacementAt = now;
+          return;
+        }
+        if (hitBlock && hitBlock.type === "chest") {
+          setChestOpen(true, blockKey(hx, hy, hz));
           return;
         }
       }
@@ -2432,7 +2586,7 @@
     }
 
     function updatePhysics(dt) {
-      if (inventoryOpen) return;
+      if (inventoryOpen || chestOpen) return;
 
       let forward = 0;
       let sideways = 0;
@@ -2453,7 +2607,12 @@
         sideways /= divisor;
 
         const yaw = camera.rot[1];
-        const distance = MOVE_SPEED * dt;
+        const feetBlock = getBlock(
+          Math.floor(camera.pos[0]),
+          Math.floor(camera.pos[1] + 0.05),
+          Math.floor(camera.pos[2])
+        );
+        const distance = MOVE_SPEED * (feetBlock?.type === "water" ? 0.38 : 1) * dt;
 
         const dx = (
           Math.sin(yaw) * forward +
@@ -2713,6 +2872,19 @@
     const doorSwing = new Map();
     let frameDeltaMs = 16;
     let renderFrameId = 0;
+    let worldLight = 1;
+
+    function updateDayNight() {
+      const cycle = 30 * 60 * 1000;
+      const phase = (Date.now() % cycle) / cycle;
+      const sun = (Math.sin(phase * Math.PI * 2 - Math.PI / 2) + 1) / 2;
+      worldLight = 0.28 + sun * 0.72;
+      const minutes = Math.floor(phase * 24 * 60);
+      const hours = Math.floor(minutes / 60);
+      timeOfDayElement.textContent =
+        `${hours < 10 ? "0" : ""}${hours}:${String(minutes % 60).padStart(2, "0")}` +
+        (worldLight < 0.45 ? " · Night" : " · Day");
+    }
 
     function addDoorFaces(faces, block) {
       const state = doorStateFromColor(block.color);
@@ -2838,7 +3010,12 @@
         faces.push({
           depth,
           points: polygon,
-          color: shadeColor(block.color, face.shade)
+          color: block.type === "water"
+            ? `rgba(65,145,200,${0.42 * worldLight})`
+            : shadeColor(
+                block.color,
+                face.shade * (block.type === "torch" ? Math.max(worldLight, 0.85) : worldLight)
+              )
         });
       }
     }
@@ -2917,7 +3094,9 @@
 
     function render() {
       renderFrameId++;
-      ctx.fillStyle = "#dce8f2";
+      updateDayNight();
+      const sky = Math.round(20 + worldLight * 180);
+      ctx.fillStyle = `rgb(${Math.round(sky * 0.72)},${Math.round(sky * 0.84)},${sky})`;
       ctx.fillRect(0, 0, screenWidth, screenHeight);
 
       const faces = [];
@@ -3031,6 +3210,11 @@
         return;
       }
 
+      if (event.code === "Escape" && chestOpen) {
+        setChestOpen(false);
+        return;
+      }
+
       if (event.code === "KeyF" && !event.repeat) {
         useTarget();
         return;
@@ -3040,6 +3224,7 @@
         selectedSlot = Number(event.code.slice(5)) - 1;
         gamepadInventoryCursor = selectedSlot;
         renderInventory();
+        loadChestContents();
       }
 
       if (inventoryOpen) return;
