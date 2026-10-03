@@ -2879,6 +2879,18 @@
       const phase = (Date.now() % cycle) / cycle;
       const sun = (Math.sin(phase * Math.PI * 2 - Math.PI / 2) + 1) / 2;
       worldLight = 0.28 + sun * 0.72;
+      const px = Math.floor(camera.pos[0]);
+      const py = Math.floor(camera.pos[1]);
+      const pz = Math.floor(camera.pos[2]);
+      for (let x = px - 8; x <= px + 8; x++) {
+        for (let y = py - 4; y <= py + 5; y++) {
+          for (let z = pz - 8; z <= pz + 8; z++) {
+            if (getBlock(x, y, z)?.type !== "torch") continue;
+            const distance = Math.hypot(x - camera.pos[0], y - camera.pos[1], z - camera.pos[2]);
+            worldLight = Math.min(1, worldLight + Math.max(0, 1 - distance / 10) * 0.55);
+          }
+        }
+      }
       const minutes = Math.floor(phase * 24 * 60);
       const hours = Math.floor(minutes / 60);
       timeOfDayElement.textContent =
